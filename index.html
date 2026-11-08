@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maze Escaper</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main id="app">
+    <section id="screen-home" class="screen">
+      <h1>Maze Escaper</h1>
+      <p class="subtitle">Trova l'uscita prima che scada il tempo.</p>
+      <button id="btn-play" class="primary">Gioca</button>
+      <div class="panel">
+        <h2>Livello corrente</h2>
+        <p id="home-level">1</p>
+      </div>
+      <div class="panel">
+        <h2>Statistiche</h2>
+        <p id="home-stats">Giocate: 0 · Vinte: 0 · Perse: 0</p>
+      </div>
+    </section>
+
+    <section id="screen-run" class="screen" hidden>
+      <header class="run-header">
+        <span id="hud-level">Livello 1</span>
+        <span id="hud-time">0.0s</span>
+        <button id="btn-pause" aria-label="Pausa">⏸</button>
+      </header>
+      <div id="canvas-wrap">
+        <canvas id="maze-canvas" width="640" height="640"></canvas>
+        <div id="pause-overlay" hidden><p>In pausa</p><p class="hint">Esc per riprendere</p></div>
+      </div>
+      <p class="hint">Frecce/WASD per muoverti · swipe su mobile · Esc per la pausa</p>
+    </section>
+
+    <section id="screen-result" class="screen" hidden>
+      <h1 id="result-title">Vittoria!</h1>
+      <p id="result-score">Punteggio: 0</p>
+      <p id="result-record"></p>
+      <canvas id="result-maze" width="360" height="360"></canvas>
+      <div class="actions">
+        <button id="btn-retry" class="primary">Riprova</button>
+        <button id="btn-result-menu">Menu</button>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="dist/main.js"></script>
+</body>
+</html>
