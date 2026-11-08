@@ -1,4 +1,5 @@
 import { generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT, canMove, neighborIndex } from "./maze.js";
+import { extraTimeMultiplier, timerSpeedFactor, fogBonus, hasCompass } from "./skills.js";
 export const VISIT_BONUS_SECONDS = 0.2;
 export function fogRadiusForLevel(level) {
     if (level >= 8)
@@ -7,12 +8,16 @@ export function fogRadiusForLevel(level) {
         return 3;
     return Infinity;
 }
-export function createRun(level, rng = Math.random) {
+export function fogRadius(state) {
+    const base = fogRadiusForLevel(state.level);
+    return base === Infinity ? Infinity : base + state.fogBonus;
+}
+export function createRun(level, rng = Math.random, skills = {}) {
     const n = mazeSizeForLevel(level);
     const maze = generateMaze(n, rng);
     const visited = new Uint8Array(n * n);
     visited[maze.entrance] = 1;
-    const baseTime = n * 2.5;
+    const baseTime = n * 2.5 * extraTimeMultiplier(skills);
     return {
         level,
         maze,
@@ -23,12 +28,15 @@ export function createRun(level, rng = Math.random) {
         timeLeft: baseTime,
         status: "ready",
         moves: 0,
+        timerFactor: timerSpeedFactor(skills),
+        compass: hasCompass(skills),
+        fogBonus: fogBonus(skills),
     };
 }
 export function tick(state, dtSeconds) {
     if (state.status !== "running")
         return state;
-    const timeLeft = state.timeLeft - dtSeconds;
+    const timeLeft = state.timeLeft - dtSeconds * state.timerFactor;
     if (timeLeft <= 0) {
         return { ...state, timeLeft: 0, status: "lost" };
     }

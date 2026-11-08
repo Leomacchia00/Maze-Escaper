@@ -8,6 +8,8 @@ export interface PlayerState {
   level: number;
   bestScores: Record<number, number>;
   stats: Stats;
+  currency: number;
+  skills: Record<string, number>;
 }
 
 const STORAGE_KEY = "maze-escaper:v1:player";
@@ -17,6 +19,8 @@ export function defaultPlayerState(): PlayerState {
     level: 1,
     bestScores: {},
     stats: { played: 0, won: 0, lost: 0 },
+    currency: 0,
+    skills: {},
   };
 }
 
@@ -32,6 +36,7 @@ export function loadPlayerState(storage: Storage | null = getLocalStorage()): Pl
       ...parsed,
       bestScores: { ...parsed.bestScores },
       stats: { ...fallback.stats, ...parsed.stats },
+      skills: { ...parsed.skills },
     };
   } catch {
     return defaultPlayerState();

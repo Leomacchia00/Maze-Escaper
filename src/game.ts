@@ -1,4 +1,5 @@
 import { Maze, generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT, canMove, neighborIndex } from "./maze.js";
+import { extraTimeMultiplier, timerSpeedFactor, fogBonus, hasCompass } from "./skills.js";
 
 export type Direction = 1 | 2 | 4 | 8;
 
@@ -14,6 +15,9 @@ export interface RunState {
   timeLeft: number;
   status: RunStatus;
   moves: number;
+  timerFactor: number;
+  compass: boolean;
+  fogBonus: number;
 }
 
 export const VISIT_BONUS_SECONDS = 0.2;
@@ -24,12 +28,21 @@ export function fogRadiusForLevel(level: number): number {
   return Infinity;
 }
 
-export function createRun(level: number, rng: () => number = Math.random): RunState {
+export function fogRadius(state: RunState): number {
+  const base = fogRadiusForLevel(state.level);
+  return base === Infinity ? Infinity : base + state.fogBonus;
+}
+
+export function createRun(
+  level: number,
+  rng: () => number = Math.random,
+  skills: Record<string, number> = {}
+): RunState {
   const n = mazeSizeForLevel(level);
   const maze = generateMaze(n, rng);
   const visited = new Uint8Array(n * n);
   visited[maze.entrance] = 1;
-  const baseTime = n * 2.5;
+  const baseTime = n * 2.5 * extraTimeMultiplier(skills);
   return {
     level,
     maze,
@@ -40,12 +53,15 @@ export function createRun(level: number, rng: () => number = Math.random): RunSt
     timeLeft: baseTime,
     status: "ready",
     moves: 0,
+    timerFactor: timerSpeedFactor(skills),
+    compass: hasCompass(skills),
+    fogBonus: fogBonus(skills),
   };
 }
 
 export function tick(state: RunState, dtSeconds: number): RunState {
   if (state.status !== "running") return state;
-  const timeLeft = state.timeLeft - dtSeconds;
+  const timeLeft = state.timeLeft - dtSeconds * state.timerFactor;
   if (timeLeft <= 0) {
     return { ...state, timeLeft: 0, status: "lost" };
   }

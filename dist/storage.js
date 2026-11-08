@@ -4,6 +4,8 @@ export function defaultPlayerState() {
         level: 1,
         bestScores: {},
         stats: { played: 0, won: 0, lost: 0 },
+        currency: 0,
+        skills: {},
     };
 }
 export function loadPlayerState(storage = getLocalStorage()) {
@@ -20,6 +22,7 @@ export function loadPlayerState(storage = getLocalStorage()) {
             ...parsed,
             bestScores: { ...parsed.bestScores },
             stats: { ...fallback.stats, ...parsed.stats },
+            skills: { ...parsed.skills },
         };
     }
     catch {

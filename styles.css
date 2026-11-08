@@ -80,6 +80,21 @@ button.primary {
   flex-wrap: wrap;
 }
 
+#skills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-card button {
+  width: 100%;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .run-header {
   display: flex;
   align-items: center;

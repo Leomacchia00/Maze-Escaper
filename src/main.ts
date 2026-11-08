@@ -1,7 +1,8 @@
-import { RunState, createRun, tick, tryMove, pause, resume, computeScore, fogRadiusForLevel, Direction, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
+import { RunState, createRun, tick, tryMove, pause, resume, computeScore, fogRadius, Direction, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
 import { drawRun } from "./render.js";
 import { loadPlayerState, savePlayerState, recordRunResult, PlayerState } from "./storage.js";
-import { ScreenId, UIElements, queryUI, showScreen, renderHome, renderHud, setPauseOverlay, renderResult } from "./ui.js";
+import { awardRunCoins, buySkill } from "./skills.js";
+import { ScreenId, UIElements, queryUI, showScreen, renderHome, renderHud, renderSkills, setPauseOverlay, renderResult } from "./ui.js";
 
 const KEY_MAP: Record<string, Direction> = {
   ArrowUp: TOP, w: TOP, W: TOP,
@@ -30,6 +31,8 @@ class App {
 
   private bind(): void {
     this.ui.btnPlay.addEventListener("click", () => this.startRun(this.player.level));
+    this.ui.btnSkills.addEventListener("click", () => this.showSkills());
+    this.ui.btnBackSkills.addEventListener("click", () => this.goHome());
     this.ui.btnPause.addEventListener("click", () => this.togglePause());
     this.ui.btnRetry.addEventListener("click", () => {
       if (this.run) this.startRun(this.run.level);
@@ -74,8 +77,26 @@ class App {
     showScreen(this.ui, "home");
   }
 
+  private showSkills(): void {
+    this.renderSkillsScreen();
+    showScreen(this.ui, "skills");
+  }
+
+  private renderSkillsScreen(): void {
+    renderSkills(
+      this.ui,
+      this.player,
+      (id) => {
+        this.player = buySkill(this.player, id);
+        savePlayerState(this.player);
+        this.renderSkillsScreen();
+      },
+      (tag) => this.document_.createElement(tag)
+    );
+  }
+
   private startRun(level: number): void {
-    this.run = createRun(level);
+    this.run = createRun(level, Math.random, this.player.skills);
     this.justSetRecord = false;
     showScreen(this.ui, "run");
     setPauseOverlay(this.ui, false);
@@ -112,6 +133,7 @@ class App {
     const prevBest = this.player.bestScores[run.level];
     this.justSetRecord = won && score !== null && (prevBest === undefined || score > prevBest);
     this.player = recordRunResult(this.player, run.level, won, score);
+    this.player = awardRunCoins(this.player, won, run.level);
     savePlayerState(this.player);
 
     renderResult(this.ui, {
@@ -131,8 +153,8 @@ class App {
     if (!this.run) return;
     const canvas = this.document_.getElementById("maze-canvas") as HTMLCanvasElement;
     drawRun(canvas, this.run, {
-      revealAll: fogRadiusForLevel(this.run.level) === Infinity,
-      fogRadius: fogRadiusForLevel(this.run.level),
+      revealAll: fogRadius(this.run) === Infinity,
+      fogRadius: fogRadius(this.run),
     });
     renderHud(this.ui, this.run.level, this.run.timeLeft);
   }

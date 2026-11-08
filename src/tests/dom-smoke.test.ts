@@ -25,10 +25,14 @@ function makeEl(id: string, canvases: Map<string, ReturnType<typeof makeCanvas>>
   const listeners: Record<string, Listener[]> = {};
   const canvas = makeCanvas();
   canvases.set(id, canvas);
+  const children: unknown[] = [];
   return {
     id,
     hidden: true,
     textContent: "",
+    className: "",
+    disabled: false,
+    children,
     getContext: canvas.getContext,
     get width() { return canvas.width; },
     set width(v: number) { canvas.width = v; },
@@ -40,6 +44,9 @@ function makeEl(id: string, canvases: Map<string, ReturnType<typeof makeCanvas>>
     fire(type: string, e: unknown) {
       for (const fn of listeners[type] ?? []) fn(e);
     },
+    appendChild(child: unknown) { children.push(child); },
+    replaceChildren() { children.length = 0; },
+    append(...rest: unknown[]) { children.push(...rest); },
   };
 }
 
@@ -48,16 +55,18 @@ function makeDocument() {
   const els = new Map<string, ReturnType<typeof makeEl>>();
   const docListeners: Record<string, Listener[]> = {};
   const ids = [
-    "screen-home", "screen-run", "screen-result",
-    "home-level", "home-stats", "hud-time", "hud-level",
+    "screen-home", "screen-run", "screen-result", "screen-skills",
+    "home-level", "home-stats", "home-currency", "hud-time", "hud-level",
+    "skills-list", "skills-currency",
     "pause-overlay", "result-title", "result-score", "result-record",
     "maze-canvas", "result-maze",
-    "btn-play", "btn-pause", "btn-retry", "btn-result-menu",
+    "btn-play", "btn-skills", "btn-back-skills", "btn-pause", "btn-retry", "btn-result-menu",
     "canvas-wrap", "app",
   ];
   for (const id of ids) els.set(id, makeEl(id, canvases));
   const doc = {
     getElementById: (id: string) => els.get(id) ?? null,
+    createElement: (_tag: string) => makeEl(`dynamic-${els.size}`, canvases),
     addEventListener: (type: string, fn: Listener) => {
       (docListeners[type] ??= []).push(fn);
     },
@@ -114,6 +123,21 @@ test("smoke DOM: run vinta mostra schermata risultato vittoria", async () => {
   ui.get("btn-result-menu")!.fire("click", {});
   assert.equal(ui.get("screen-home")!.hidden, false, "back to home");
   assert.ok(ui.get("home-stats")!.textContent.includes("Vinte: 1"), "stats updated");
+});
+
+test("smoke DOM: schermata skill mostra nodi e permette acquisti", async () => {
+  const harness = makeDocument();
+  const { boot } = await import("../main.js");
+  boot(harness.doc);
+  harness.frame(0);
+
+  const ui = harness.els;
+  ui.get("btn-skills")!.fire("click", {});
+  assert.equal(ui.get("screen-skills")!.hidden, false, "skills screen visible");
+  assert.equal(ui.get("skills-list")!.children.length, 4, "four skill nodes rendered");
+
+  ui.get("btn-back-skills")!.fire("click", {});
+  assert.equal(ui.get("screen-home")!.hidden, false, "back to home from skills");
 });
 
 test("smoke DOM: tempo scaduto mostra schermata sconfitta con labirinto visibile", async () => {

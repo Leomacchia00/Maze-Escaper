@@ -45,11 +45,11 @@ test("sconfitta non sblocca livelli né record, ma conta nelle statistiche", () 
 
 test("stato player estendibile con campi futuri", () => {
   const storage = new MemoryStorage() as unknown as Storage;
-  const extended = { ...defaultPlayerState(), currency: 10, skills: [], charityTokens: 0 } as PlayerState & Record<string, unknown>;
+  const extended = { ...defaultPlayerState(), currency: 10, skills: {}, charityTokens: 0 } as unknown as PlayerState & Record<string, unknown>;
   savePlayerState(extended, storage);
   const reloaded = loadPlayerState(storage) as PlayerState & Record<string, unknown>;
   assert.equal(reloaded.currency, 10);
-  assert.deepEqual(reloaded.skills, []);
+  assert.deepEqual(reloaded.skills, {});
   assert.equal(reloaded.charityTokens, 0);
 });
 

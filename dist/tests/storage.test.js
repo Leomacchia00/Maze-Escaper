@@ -40,11 +40,11 @@ test("sconfitta non sblocca livelli né record, ma conta nelle statistiche", () 
 });
 test("stato player estendibile con campi futuri", () => {
     const storage = new MemoryStorage();
-    const extended = { ...defaultPlayerState(), currency: 10, skills: [], charityTokens: 0 };
+    const extended = { ...defaultPlayerState(), currency: 10, skills: {}, charityTokens: 0 };
     savePlayerState(extended, storage);
     const reloaded = loadPlayerState(storage);
     assert.equal(reloaded.currency, 10);
-    assert.deepEqual(reloaded.skills, []);
+    assert.deepEqual(reloaded.skills, {});
     assert.equal(reloaded.charityTokens, 0);
 });
 test("senza storage (SSR/node) non lancia e restituisce default", () => {

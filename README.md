@@ -16,11 +16,13 @@ Il gioco è statico e offline-first: serve solo un server statico (i moduli ES n
 
 - `src/maze.ts` — generazione perfect maze (recursive backtracker), BFS, uscita = cella più lontana
 - `src/game.ts` — stato di run puro: timer, movimento, punteggio, fog of war
-- `src/render.ts` — disegno del labirinto su canvas
-- `src/storage.ts` — persistenza localStorage (livello, record per livello, statistiche)
-- `src/ui.ts` — schermate Home / Run / Risultato
+- `src/skills.ts` — skill tree e valuta meta (v1.1)
+- `src/render.ts` — disegno del labirinto su canvas (inclusa la bussola)
+- `src/storage.ts` — persistenza localStorage (livello, record, statistiche, monete, skill)
+- `src/ui.ts` — schermate Home / Run / Risultato / Skill
 - `src/main.ts` — input (frecce/WASD, swipe, Esc pausa) e loop rAF
 - `src/tests/` — test automatici (`npm test`)
+- `docs/SPEC.md` — specifica di gioco (documento base del progetto)
 
 ## Regole v1
 
@@ -30,10 +32,19 @@ Il gioco è statico e offline-first: serve solo un server statico (i moduli ES n
 - Fog of war: raggio 3 dal livello 4, raggio 2 dal livello 8
 - Alla sconfitta il labirinto resta visibile nella schermata risultato
 
+## v1.1 — Skill tree e valuta meta
+
+- Vittoria: `10 + livello * 2` monete; sconfitta: 2 monete
+- 4 skill (3 livelli ciascuna, costi 20/50/120), due rami con prerequisiti:
+  - **Tempo extra**: +5% tempo base per livello → sblocca **Timer lento** (tempo scorre 5% più lento per livello)
+  - **Visione**: +1 raggio fog per livello → sblocca **Bussola** (freccia verso l'uscita sul canvas)
+- Acquisti dalla schermata Skill (Home → Skill), persistiti in localStorage
+- Design e fonti: `docs/SPEC.md` §12
+
 ## Test
 
 ```bash
 npm test
 ```
 
-Copre: 100 labirinti tutti risolvibili (BFS), formula del punteggio, timer/visite, pausa, fog of war, persistenza.
+Copre: 100 labirinti tutti risolvibili (BFS), formula del punteggio, timer/visite, pausa, fog of war, valuta e skill (effetti, costi, prerequisiti, reload), persistenza, smoke test DOM.

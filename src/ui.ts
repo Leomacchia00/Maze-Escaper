@@ -1,6 +1,7 @@
 import { PlayerState } from "./storage.js";
+import { SKILLS, SkillNode, canBuy, skillCost, skillLevel } from "./skills.js";
 
-export type ScreenId = "home" | "run" | "result";
+export type ScreenId = "home" | "run" | "result" | "skills";
 
 export interface ResultInfo {
   won: boolean;
@@ -14,6 +15,10 @@ export interface UIElements {
   screens: Record<ScreenId, HTMLElement>;
   homeLevel: HTMLElement;
   homeStats: HTMLElement;
+  homeCurrency: HTMLElement;
+  skillsList: HTMLElement;
+  skillsCurrency: HTMLElement;
+  btnBackSkills: HTMLButtonElement;
   hudTime: HTMLElement;
   hudLevel: HTMLElement;
   pauseOverlay: HTMLElement;
@@ -22,6 +27,7 @@ export interface UIElements {
   resultRecord: HTMLElement;
   resultMaze: HTMLCanvasElement;
   btnPlay: HTMLButtonElement;
+  btnSkills: HTMLButtonElement;
   btnPause: HTMLButtonElement;
   btnRetry: HTMLButtonElement;
   btnResultMenu: HTMLButtonElement;
@@ -33,9 +39,15 @@ export function queryUI(root: Document = document): UIElements {
       home: requireEl(root, "screen-home"),
       run: requireEl(root, "screen-run"),
       result: requireEl(root, "screen-result"),
+      skills: requireEl(root, "screen-skills"),
     },
     homeLevel: requireEl(root, "home-level"),
     homeStats: requireEl(root, "home-stats"),
+    homeCurrency: requireEl(root, "home-currency"),
+    skillsList: requireEl(root, "skills-list"),
+    skillsCurrency: requireEl(root, "skills-currency"),
+    btnBackSkills: requireEl(root, "btn-back-skills") as HTMLButtonElement,
+    btnSkills: requireEl(root, "btn-skills") as HTMLButtonElement,
     hudTime: requireEl(root, "hud-time"),
     hudLevel: requireEl(root, "hud-level"),
     pauseOverlay: requireEl(root, "pause-overlay"),
@@ -65,6 +77,52 @@ export function showScreen(ui: UIElements, id: ScreenId): void {
 export function renderHome(ui: UIElements, player: PlayerState): void {
   ui.homeLevel.textContent = String(player.level);
   ui.homeStats.textContent = formatStats(player);
+  ui.homeCurrency.textContent = `Monete: ${player.currency}`;
+}
+
+export function renderSkills(
+  ui: UIElements,
+  player: PlayerState,
+  onBuy: (id: string) => void,
+  createElement: (tag: string) => HTMLElement = (tag) => document.createElement(tag)
+): void {
+  ui.skillsCurrency.textContent = `Monete: ${player.currency}`;
+  ui.skillsList.replaceChildren();
+  for (const node of SKILLS) {
+    ui.skillsList.appendChild(skillCard(player, node, onBuy, createElement));
+  }
+}
+
+function skillCard(
+  player: PlayerState,
+  node: SkillNode,
+  onBuy: (id: string) => void,
+  createElement: (tag: string) => HTMLElement
+): HTMLElement {
+  const card = createElement("div");
+  card.className = "panel skill-card";
+  const level = skillLevel(player.skills, node.id);
+  const cost = skillCost(player.skills, node.id);
+  const buyable = canBuy(player, node.id);
+
+  const title = createElement("h2");
+  title.textContent = `${node.name} — livello ${level}/${node.maxLevel}`;
+  const desc = createElement("p");
+  desc.textContent = node.description;
+  card.append(title, desc);
+
+  if (cost === null) {
+    const max = createElement("p");
+    max.textContent = "Livello massimo raggiunto";
+    card.append(max);
+  } else {
+    const btn = createElement("button") as HTMLButtonElement;
+    btn.textContent = `Migliora — ${cost} monete`;
+    btn.disabled = !buyable;
+    btn.addEventListener("click", () => onBuy(node.id));
+    card.append(btn);
+  }
+  return card;
 }
 
 export function formatStats(player: PlayerState): string {

@@ -46,9 +46,35 @@ export function drawRun(canvas: HTMLCanvasElement, state: RunState, options: Ren
     ctx.fill();
   }
 
+  if (state.compass) {
+    drawCompass(ctx, state, size);
+  }
+
   if (!options.revealAll && options.fogRadius !== Infinity) {
     drawFog(ctx, state, options.fogRadius, cell);
   }
+}
+
+function drawCompass(ctx: CanvasRenderingContext2D, state: RunState, size: number): void {
+  const maze = state.maze;
+  const from = xy(maze, state.player);
+  const to = xy(maze, maze.exit);
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const margin = size * 0.05;
+  const cx = size / 2 + ux * (size / 2 - margin);
+  const cy = size / 2 + uy * (size / 2 - margin);
+  const r = Math.max(8, size * 0.02);
+  ctx.fillStyle = COLORS.exit;
+  ctx.beginPath();
+  ctx.moveTo(cx + ux * r, cy + uy * r);
+  ctx.lineTo(cx - uy * r * 0.6 - ux * r * 0.6, cy + ux * r * 0.6 - uy * r * 0.6);
+  ctx.lineTo(cx + uy * r * 0.6 - ux * r * 0.6, cy - ux * r * 0.6 - uy * r * 0.6);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function visible(state: RunState, cellIndex: number, radius: number): boolean {
