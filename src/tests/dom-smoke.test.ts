@@ -26,6 +26,7 @@ function makeEl(id: string, canvases: Map<string, ReturnType<typeof makeCanvas>>
   const canvas = makeCanvas();
   canvases.set(id, canvas);
   const children: unknown[] = [];
+  const classes = new Set<string>();
   return {
     id,
     hidden: true,
@@ -33,6 +34,16 @@ function makeEl(id: string, canvases: Map<string, ReturnType<typeof makeCanvas>>
     className: "",
     disabled: false,
     children,
+    classList: {
+      toggle(name: string, force?: boolean) {
+        const on = force ?? !classes.has(name);
+        if (on) classes.add(name); else classes.delete(name);
+        return on;
+      },
+      add: (name: string) => classes.add(name),
+      remove: (name: string) => classes.delete(name),
+      contains: (name: string) => classes.has(name),
+    },
     getContext: canvas.getContext,
     get width() { return canvas.width; },
     set width(v: number) { canvas.width = v; },
@@ -56,9 +67,11 @@ function makeDocument() {
   const docListeners: Record<string, Listener[]> = {};
   const ids = [
     "screen-home", "screen-run", "screen-result", "screen-skills",
-    "home-level", "home-stats", "home-currency", "hud-time", "hud-level",
+    "home-level", "home-currency", "stat-runs", "stat-wins", "stat-losses",
+    "hud-time", "hud-level",
     "skills-list", "skills-currency",
-    "pause-overlay", "result-title", "result-score", "result-record",
+    "pause-overlay", "result-title", "result-score-value", "result-breakdown",
+    "breakdown-time", "breakdown-size", "breakdown-efficiency", "result-record",
     "maze-canvas", "result-maze",
     "btn-play", "btn-skills", "btn-back-skills", "btn-pause", "btn-retry", "btn-result-menu",
     "canvas-wrap", "app",
@@ -117,12 +130,13 @@ test("smoke DOM: run vinta mostra schermata risultato vittoria", async () => {
   }
   assert.ok(won, "random-walk keypresses must eventually reach the exit");
   assert.ok(ui.get("result-title")!.textContent.includes("Vittoria"), "victory title shown");
-  assert.ok(ui.get("result-score")!.textContent.includes("Punteggio:"), "score shown");
+  assert.notEqual(ui.get("result-score-value")!.textContent, "—", "score shown on win");
+  assert.equal(ui.get("result-breakdown")!.hidden, false, "score breakdown visible on win");
   assert.equal(ui.get("result-maze")!.hidden, true, "maze review hidden on win");
 
   ui.get("btn-result-menu")!.fire("click", {});
   assert.equal(ui.get("screen-home")!.hidden, false, "back to home");
-  assert.ok(ui.get("home-stats")!.textContent.includes("Vinte: 1"), "stats updated");
+  assert.equal(ui.get("stat-wins")!.textContent, "1", "stats updated");
 });
 
 test("smoke DOM: schermata skill mostra nodi e permette acquisti", async () => {
@@ -164,7 +178,8 @@ test("smoke DOM: tempo scaduto mostra schermata sconfitta con labirinto visibile
   }
   assert.equal(ui.get("screen-result")!.hidden, false, "result screen shown");
   assert.ok(ui.get("result-title")!.textContent.includes("Tempo scaduto"), "defeat title shown");
-  assert.ok(ui.get("result-score")!.textContent.includes("Nessun punteggio"), "no score on loss");
+  assert.equal(ui.get("result-score-value")!.textContent, "—", "no score on loss");
+  assert.equal(ui.get("result-breakdown")!.hidden, true, "breakdown hidden on loss");
   assert.equal(ui.get("result-maze")!.hidden, false, "maze visible for path review on loss");
 
   ui.get("btn-retry")!.fire("click", {});

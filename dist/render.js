@@ -1,11 +1,13 @@
 import { TOP, RIGHT, BOTTOM, LEFT, xy } from "./maze.js";
 const COLORS = {
-    background: "#0d1117",
-    wall: "#58a6ff",
-    player: "#3fb950",
-    exit: "#f0883e",
-    visited: "#21262d",
-    fog: "#010409",
+    background: "#070b14",
+    grid: "rgba(34, 211, 238, 0.05)",
+    wall: "#22d3ee",
+    wallGlow: "rgba(34, 211, 238, 0.18)",
+    player: "#34d399",
+    exit: "#fb923c",
+    trail: "rgba(34, 211, 238, 0.14)",
+    fog: "4, 8, 18",
 };
 export function drawRun(canvas, state, options) {
     const ctx = canvas.getContext("2d");
@@ -14,25 +16,17 @@ export function drawRun(canvas, state, options) {
     const maze = state.maze;
     const size = canvas.width;
     const cell = size / maze.n;
+    const now = typeof performance !== "undefined" ? performance.now() : 0;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, size, size);
-    drawMaze(ctx, maze, cell);
-    ctx.fillStyle = COLORS.visited;
-    for (let i = 0; i < maze.n * maze.n; i++) {
-        if (!state.visited[i])
-            continue;
-        const { x, y } = xy(maze, i);
-        ctx.fillRect(x * cell + cell * 0.3, y * cell + cell * 0.3, cell * 0.4, cell * 0.4);
-    }
+    drawGrid(ctx, size, cell);
+    drawTrail(ctx, state, cell);
+    drawWalls(ctx, maze, cell);
     if (options.revealAll || visible(state, maze.exit, options.fogRadius)) {
-        drawExit(ctx, maze, cell);
+        drawExit(ctx, maze, cell, now);
     }
     if (options.revealAll || visible(state, state.player, options.fogRadius)) {
-        const { x, y } = xy(maze, state.player);
-        ctx.fillStyle = COLORS.player;
-        ctx.beginPath();
-        ctx.arc(x * cell + cell / 2, y * cell + cell / 2, cell * 0.3, 0, Math.PI * 2);
-        ctx.fill();
+        drawPlayer(ctx, state, cell, now);
     }
     if (state.compass) {
         drawCompass(ctx, state, size);
@@ -40,6 +34,109 @@ export function drawRun(canvas, state, options) {
     if (!options.revealAll && options.fogRadius !== Infinity) {
         drawFog(ctx, state, options.fogRadius, cell);
     }
+}
+function visible(state, cellIndex, radius) {
+    const n = state.maze.n;
+    const px = state.player % n;
+    const py = Math.floor(state.player / n);
+    const cx = cellIndex % n;
+    const cy = Math.floor(cellIndex / n);
+    const dx = Math.abs(px - cx);
+    const dy = Math.abs(py - cy);
+    return Math.sqrt(dx * dx + dy * dy) <= radius + 0.5;
+}
+function drawGrid(ctx, size, cell) {
+    ctx.fillStyle = COLORS.grid;
+    for (let x = cell; x < size; x += cell) {
+        ctx.fillRect(x - 0.5, 0, 1, size);
+    }
+    for (let y = cell; y < size; y += cell) {
+        ctx.fillRect(0, y - 0.5, size, 1);
+    }
+}
+function roundRectPath(ctx, x, y, w, h, r) {
+    if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(x, y, w, h, r);
+    }
+    else {
+        ctx.rect(x, y, w, h);
+    }
+}
+function drawTrail(ctx, state, cell) {
+    const maze = state.maze;
+    ctx.fillStyle = COLORS.trail;
+    for (let i = 0; i < maze.n * maze.n; i++) {
+        if (!state.visited[i])
+            continue;
+        const { x, y } = xy(maze, i);
+        ctx.beginPath();
+        roundRectPath(ctx, x * cell + cell * 0.22, y * cell + cell * 0.22, cell * 0.56, cell * 0.56, cell * 0.16);
+        ctx.fill();
+    }
+}
+function drawWalls(ctx, maze, cell) {
+    const paths = () => {
+        ctx.beginPath();
+        for (let y = 0; y < maze.n; y++) {
+            for (let x = 0; x < maze.n; x++) {
+                const i = y * maze.n + x;
+                const walls = maze.walls[i];
+                const px = x * cell;
+                const py = y * cell;
+                if (walls & TOP)
+                    line(ctx, px, py, px + cell, py);
+                if (walls & RIGHT)
+                    line(ctx, px + cell, py, px + cell, py + cell);
+                if (walls & BOTTOM)
+                    line(ctx, px, py + cell, px + cell, py + cell);
+                if (walls & LEFT)
+                    line(ctx, px, py, px, py + cell);
+            }
+        }
+    };
+    ctx.lineCap = "round";
+    ctx.strokeStyle = COLORS.wallGlow;
+    ctx.lineWidth = Math.max(3, cell * 0.22);
+    paths();
+    ctx.stroke();
+    ctx.strokeStyle = COLORS.wall;
+    ctx.lineWidth = Math.max(1.5, cell * 0.09);
+    paths();
+    ctx.stroke();
+}
+function line(ctx, x1, y1, x2, y2) {
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+}
+function drawExit(ctx, maze, cell, now) {
+    const { x, y } = xy(maze, maze.exit);
+    const cx = x * cell + cell / 2;
+    const cy = y * cell + cell / 2;
+    const pulse = 0.75 + 0.25 * Math.sin(now / 300);
+    const r = cell * 0.32 * pulse;
+    ctx.fillStyle = "rgba(251, 146, 60, 0.18)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, cell * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.exit;
+    ctx.beginPath();
+    roundRectPath(ctx, cx - r, cy - r, r * 2, r * 2, r * 0.35);
+    ctx.fill();
+}
+function drawPlayer(ctx, state, cell, now) {
+    const maze = state.maze;
+    const { x, y } = xy(maze, state.player);
+    const cx = x * cell + cell / 2;
+    const cy = y * cell + cell / 2;
+    const r = cell * 0.3 + cell * 0.03 * Math.sin(now / 400);
+    ctx.fillStyle = "rgba(52, 211, 153, 0.2)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 1.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = COLORS.player;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
 }
 function drawCompass(ctx, state, size) {
     const maze = state.maze;
@@ -62,56 +159,21 @@ function drawCompass(ctx, state, size) {
     ctx.closePath();
     ctx.fill();
 }
-function visible(state, cellIndex, radius) {
-    const n = state.maze.n;
-    const px = state.player % n;
-    const py = Math.floor(state.player / n);
-    const cx = cellIndex % n;
-    const cy = Math.floor(cellIndex / n);
-    const dx = Math.abs(px - cx);
-    const dy = Math.abs(py - cy);
-    return Math.sqrt(dx * dx + dy * dy) <= radius + 0.5;
-}
 function drawFog(ctx, state, radius, cell) {
     const maze = state.maze;
-    ctx.fillStyle = COLORS.fog;
-    for (let y = 0; y < maze.n; y++) {
-        for (let x = 0; x < maze.n; x++) {
-            if (visible(state, y * maze.n + x, radius))
+    const n = maze.n;
+    const px = state.player % n;
+    const py = Math.floor(state.player / n);
+    const softEdge = 1.6;
+    for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+            const dist = Math.hypot(px - x, py - y);
+            const alpha = Math.min(1, Math.max(0, (dist - radius) / softEdge));
+            if (alpha <= 0)
                 continue;
-            ctx.fillRect(x * cell, y * cell, cell + 1, cell + 1);
+            ctx.fillStyle = `rgba(${COLORS.fog}, ${alpha.toFixed(2)})`;
+            ctx.fillRect(x * cell - 0.5, y * cell - 0.5, cell + 1, cell + 1);
         }
     }
-}
-function drawMaze(ctx, maze, cell) {
-    ctx.strokeStyle = COLORS.wall;
-    ctx.lineWidth = Math.max(1, cell * 0.08);
-    ctx.beginPath();
-    for (let y = 0; y < maze.n; y++) {
-        for (let x = 0; x < maze.n; x++) {
-            const i = y * maze.n + x;
-            const walls = maze.walls[i];
-            const px = x * cell;
-            const py = y * cell;
-            if (walls & TOP)
-                line(ctx, px, py, px + cell, py);
-            if (walls & RIGHT)
-                line(ctx, px + cell, py, px + cell, py + cell);
-            if (walls & BOTTOM)
-                line(ctx, px, py + cell, px + cell, py + cell);
-            if (walls & LEFT)
-                line(ctx, px, py, px, py + cell);
-        }
-    }
-    ctx.stroke();
-}
-function line(ctx, x1, y1, x2, y2) {
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-}
-function drawExit(ctx, maze, cell) {
-    const { x, y } = xy(maze, maze.exit);
-    ctx.fillStyle = COLORS.exit;
-    ctx.fillRect(x * cell + cell * 0.2, y * cell + cell * 0.2, cell * 0.6, cell * 0.6);
 }
 export { COLORS };

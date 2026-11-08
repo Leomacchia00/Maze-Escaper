@@ -105,11 +105,22 @@ export function resume(state: RunState): RunState {
   return { ...state, status: state.moves === 0 ? "ready" : "running" };
 }
 
-export function computeScore(timeLeft: number, n: number, visitedCount: number): number {
-  const timePoints = Math.max(0, timeLeft) * 10;
+export interface ScoreBreakdown {
+  timePoints: number;
+  sizePoints: number;
+  efficiency: number;
+  total: number;
+}
+
+export function computeScoreBreakdown(timeLeft: number, n: number, visitedCount: number): ScoreBreakdown {
+  const timePoints = Math.round(Math.max(0, timeLeft) * 10);
   const sizePoints = n * n;
-  const efficiencyBonus = Math.max(0, (n * n - visitedCount) * 5);
-  return Math.round(timePoints + sizePoints + efficiencyBonus);
+  const efficiency = Math.max(0, (n * n - visitedCount) * 5);
+  return { timePoints, sizePoints, efficiency, total: timePoints + sizePoints + efficiency };
+}
+
+export function computeScore(timeLeft: number, n: number, visitedCount: number): number {
+  return computeScoreBreakdown(timeLeft, n, visitedCount).total;
 }
 
 export function isVictory(state: RunState): boolean {

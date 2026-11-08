@@ -78,11 +78,14 @@ export function resume(state) {
         return state;
     return { ...state, status: state.moves === 0 ? "ready" : "running" };
 }
-export function computeScore(timeLeft, n, visitedCount) {
-    const timePoints = Math.max(0, timeLeft) * 10;
+export function computeScoreBreakdown(timeLeft, n, visitedCount) {
+    const timePoints = Math.round(Math.max(0, timeLeft) * 10);
     const sizePoints = n * n;
-    const efficiencyBonus = Math.max(0, (n * n - visitedCount) * 5);
-    return Math.round(timePoints + sizePoints + efficiencyBonus);
+    const efficiency = Math.max(0, (n * n - visitedCount) * 5);
+    return { timePoints, sizePoints, efficiency, total: timePoints + sizePoints + efficiency };
+}
+export function computeScore(timeLeft, n, visitedCount) {
+    return computeScoreBreakdown(timeLeft, n, visitedCount).total;
 }
 export function isVictory(state) {
     return state.status === "won";

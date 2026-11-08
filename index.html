@@ -3,54 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#070b14" />
   <title>Maze Escaper</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app">
     <section id="screen-home" class="screen">
-      <h1>Maze Escaper</h1>
-      <p class="subtitle">Trova l'uscita prima che scada il tempo.</p>
-      <button id="btn-play" class="primary">Gioca</button>
-      <button id="btn-skills">Skill</button>
-      <div class="panel">
-        <h2>Livello corrente</h2>
-        <p id="home-level">1</p>
+      <header class="brand">
+        <h1>Maze Escaper</h1>
+        <p class="subtitle">Trova l'uscita prima che scada il tempo.</p>
+      </header>
+      <div class="menu-actions">
+        <button id="btn-play" class="primary">Gioca</button>
+        <button id="btn-skills">Skill</button>
       </div>
-      <div class="panel">
-        <h2>Statistiche</h2>
-        <p id="home-stats">Giocate: 0 · Vinte: 0 · Perse: 0</p>
+      <div class="panel panel-row">
+        <div>
+          <h2>Livello corrente</h2>
+          <p class="hint">Ogni livello: labirinto più grande</p>
+        </div>
+        <span class="big-number" id="home-level">1</span>
       </div>
-      <div class="panel">
-        <h2>Monete</h2>
-        <p id="home-currency">Monete: 0</p>
+      <div class="panel panel-row">
+        <div>
+          <h2>Monete</h2>
+          <p class="hint">Guadagnate vincendo le run</p>
+        </div>
+        <span class="big-number" id="home-currency">0</span>
+      </div>
+      <h2>Statistiche</h2>
+      <div class="stats-grid">
+        <div class="stat"><div class="value" id="stat-runs">0</div><div class="label">Giocate</div></div>
+        <div class="stat"><div class="value" id="stat-wins">0</div><div class="label">Vinte</div></div>
+        <div class="stat"><div class="value" id="stat-losses">0</div><div class="label">Perse</div></div>
       </div>
     </section>
 
     <section id="screen-skills" class="screen" hidden>
       <h1>Skill</h1>
-      <p id="skills-currency">Monete: 0</p>
+      <span class="chip currency-chip" id="skills-currency">Monete: 0</span>
       <div id="skills-list"></div>
       <button id="btn-back-skills">Menu</button>
     </section>
 
     <section id="screen-run" class="screen" hidden>
       <header class="run-header">
-        <span id="hud-level">Livello 1</span>
-        <span id="hud-time">0.0s</span>
+        <span class="chip" id="hud-level">Livello 1</span>
+        <span class="chip time" id="hud-time">0.0s</span>
         <button id="btn-pause" aria-label="Pausa">⏸</button>
       </header>
       <div id="canvas-wrap">
         <canvas id="maze-canvas" width="640" height="640"></canvas>
-        <div id="pause-overlay" hidden><p>In pausa</p><p class="hint">Esc per riprendere</p></div>
+        <div id="pause-overlay" hidden><p>In pausa</p><p class="hint">Esc o ⏸ per riprendere</p></div>
       </div>
-      <p class="hint">Frecce/WASD per muoverti · swipe su mobile · Esc per la pausa</p>
+      <p class="hint">Frecce/WASD · swipe su mobile · Esc per la pausa</p>
     </section>
 
     <section id="screen-result" class="screen" hidden>
-      <h1 id="result-title">Vittoria!</h1>
-      <p id="result-score">Punteggio: 0</p>
-      <p id="result-record"></p>
+      <h1 id="result-title" class="result-title">Vittoria!</h1>
+      <div class="panel score-box">
+        <p class="score" id="result-score-value">0</p>
+        <p class="score-label">Punteggio</p>
+      </div>
+      <div class="panel breakdown" id="result-breakdown" hidden>
+        <div class="row"><span>Tempo residuo</span><span id="breakdown-time">+0</span></div>
+        <div class="row"><span>Labirinto</span><span id="breakdown-size">+0</span></div>
+        <div class="row"><span>Bonus efficienza</span><span id="breakdown-efficiency">+0</span></div>
+      </div>
+      <p class="record-badge" id="result-record"></p>
       <canvas id="result-maze" width="360" height="360"></canvas>
       <div class="actions">
         <button id="btn-retry" class="primary">Riprova</button>

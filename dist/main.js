@@ -1,4 +1,4 @@
-import { createRun, tick, tryMove, pause, resume, computeScore, fogRadius, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
+import { createRun, tick, tryMove, pause, resume, computeScoreBreakdown, fogRadius, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
 import { drawRun } from "./render.js";
 import { loadPlayerState, savePlayerState, recordRunResult } from "./storage.js";
 import { awardRunCoins, buySkill } from "./skills.js";
@@ -119,7 +119,8 @@ class App {
     finishRun(won) {
         const run = this.run;
         const n = run.maze.n;
-        const score = won ? computeScore(run.timeLeft, n, run.visitedCount) : null;
+        const breakdown = won ? computeScoreBreakdown(run.timeLeft, n, run.visitedCount) : null;
+        const score = breakdown ? breakdown.total : null;
         const prevBest = this.player.bestScores[run.level];
         this.justSetRecord = won && score !== null && (prevBest === undefined || score > prevBest);
         this.player = recordRunResult(this.player, run.level, won, score);
@@ -128,7 +129,7 @@ class App {
         renderResult(this.ui, {
             won,
             level: run.level,
-            score,
+            breakdown,
             isRecord: this.justSetRecord,
             nextLevel: won ? run.level + 1 : run.level,
         });
@@ -145,7 +146,7 @@ class App {
             revealAll: fogRadius(this.run) === Infinity,
             fogRadius: fogRadius(this.run),
         });
-        renderHud(this.ui, this.run.level, this.run.timeLeft);
+        renderHud(this.ui, this.run.level, this.run.timeLeft, this.run.baseTime);
     }
     loop(ts) {
         if (this.lastFrame !== null && this.run) {

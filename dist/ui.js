@@ -8,8 +8,10 @@ export function queryUI(root = document) {
             skills: requireEl(root, "screen-skills"),
         },
         homeLevel: requireEl(root, "home-level"),
-        homeStats: requireEl(root, "home-stats"),
         homeCurrency: requireEl(root, "home-currency"),
+        statRuns: requireEl(root, "stat-runs"),
+        statWins: requireEl(root, "stat-wins"),
+        statLosses: requireEl(root, "stat-losses"),
         skillsList: requireEl(root, "skills-list"),
         skillsCurrency: requireEl(root, "skills-currency"),
         btnBackSkills: requireEl(root, "btn-back-skills"),
@@ -18,7 +20,11 @@ export function queryUI(root = document) {
         hudLevel: requireEl(root, "hud-level"),
         pauseOverlay: requireEl(root, "pause-overlay"),
         resultTitle: requireEl(root, "result-title"),
-        resultScore: requireEl(root, "result-score"),
+        resultScoreValue: requireEl(root, "result-score-value"),
+        resultBreakdown: requireEl(root, "result-breakdown"),
+        breakdownTime: requireEl(root, "breakdown-time"),
+        breakdownSize: requireEl(root, "breakdown-size"),
+        breakdownEfficiency: requireEl(root, "breakdown-efficiency"),
         resultRecord: requireEl(root, "result-record"),
         resultMaze: requireEl(root, "result-maze"),
         btnPlay: requireEl(root, "btn-play"),
@@ -40,8 +46,46 @@ export function showScreen(ui, id) {
 }
 export function renderHome(ui, player) {
     ui.homeLevel.textContent = String(player.level);
-    ui.homeStats.textContent = formatStats(player);
-    ui.homeCurrency.textContent = `Monete: ${player.currency}`;
+    ui.homeCurrency.textContent = String(player.currency);
+    ui.statRuns.textContent = String(player.stats.played);
+    ui.statWins.textContent = String(player.stats.won);
+    ui.statLosses.textContent = String(player.stats.lost);
+}
+export function formatTime(seconds) {
+    const s = Math.max(0, seconds);
+    const whole = Math.floor(s);
+    const tenths = Math.floor((s - whole) * 10);
+    return `${whole}.${tenths}s`;
+}
+export function renderHud(ui, level, timeLeft, baseTime) {
+    ui.hudLevel.textContent = `Livello ${level}`;
+    ui.hudTime.textContent = formatTime(timeLeft);
+    ui.hudTime.classList.toggle("low", timeLeft < baseTime * 0.25);
+}
+export function setPauseOverlay(ui, paused) {
+    ui.pauseOverlay.hidden = !paused;
+}
+export function renderResult(ui, info) {
+    ui.resultTitle.textContent = info.won ? "Vittoria!" : "Tempo scaduto";
+    ui.resultTitle.classList.toggle("win", info.won);
+    ui.resultTitle.classList.toggle("loss", !info.won);
+    if (info.won && info.breakdown) {
+        ui.resultScoreValue.textContent = String(info.breakdown.total);
+        ui.resultBreakdown.hidden = false;
+        ui.breakdownTime.textContent = `+${info.breakdown.timePoints}`;
+        ui.breakdownSize.textContent = `+${info.breakdown.sizePoints}`;
+        ui.breakdownEfficiency.textContent = `+${info.breakdown.efficiency}`;
+    }
+    else {
+        ui.resultScoreValue.textContent = "—";
+        ui.resultBreakdown.hidden = true;
+    }
+    ui.resultRecord.textContent = info.isRecord
+        ? `★ Nuovo record per il livello ${info.level}!`
+        : info.won
+            ? `Prossimo livello: ${info.nextLevel}`
+            : "Il labirinto resta visibile per la revisione del percorso.";
+    ui.resultMaze.hidden = info.won;
 }
 export function renderSkills(ui, player, onBuy, createElement = (tag) => document.createElement(tag)) {
     ui.skillsCurrency.textContent = `Monete: ${player.currency}`;
@@ -56,15 +100,27 @@ function skillCard(player, node, onBuy, createElement) {
     const level = skillLevel(player.skills, node.id);
     const cost = skillCost(player.skills, node.id);
     const buyable = canBuy(player, node.id);
+    const head = createElement("div");
+    head.className = "head";
     const title = createElement("h2");
-    title.textContent = `${node.name} — livello ${level}/${node.maxLevel}`;
+    title.textContent = node.name;
+    const dots = createElement("div");
+    dots.className = "level-dots";
+    for (let i = 0; i < node.maxLevel; i++) {
+        const dot = createElement("span");
+        dot.className = i < level ? "dot on" : "dot";
+        dots.append(dot);
+    }
+    head.append(title, dots);
     const desc = createElement("p");
+    desc.className = "desc";
     desc.textContent = node.description;
-    card.append(title, desc);
+    card.append(head, desc);
     if (cost === null) {
-        const max = createElement("p");
-        max.textContent = "Livello massimo raggiunto";
-        card.append(max);
+        const maxed = createElement("p");
+        maxed.className = "maxed";
+        maxed.textContent = "✔ Livello massimo";
+        card.append(maxed);
     }
     else {
         const btn = createElement("button");
@@ -74,32 +130,4 @@ function skillCard(player, node, onBuy, createElement) {
         card.append(btn);
     }
     return card;
-}
-export function formatStats(player) {
-    const s = player.stats;
-    return `Giocate: ${s.played} · Vinte: ${s.won} · Perse: ${s.lost}`;
-}
-export function formatTime(seconds) {
-    const s = Math.max(0, seconds);
-    const whole = Math.floor(s);
-    const tenths = Math.floor((s - whole) * 10);
-    return `${whole}.${tenths}s`;
-}
-export function renderHud(ui, level, timeLeft) {
-    ui.hudLevel.textContent = `Livello ${level}`;
-    ui.hudTime.textContent = formatTime(timeLeft);
-}
-export function setPauseOverlay(ui, paused) {
-    ui.pauseOverlay.hidden = !paused;
-}
-export function renderResult(ui, info) {
-    ui.resultTitle.textContent = info.won ? "Vittoria!" : "Tempo scaduto";
-    ui.resultScore.textContent =
-        info.won && info.score !== null ? `Punteggio: ${info.score}` : "Nessun punteggio";
-    ui.resultRecord.textContent = info.isRecord
-        ? `Nuovo record per il livello ${info.level}!`
-        : info.won
-            ? `Prossimo livello: ${info.nextLevel}`
-            : `Il labirinto resta visibile per la revisione del percorso.`;
-    ui.resultMaze.hidden = info.won;
 }
