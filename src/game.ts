@@ -9,6 +9,8 @@ export interface RunState {
   player: number;
   px: number;
   py: number;
+  facingX: number;
+  facingY: number;
   visited: Uint8Array;
   visitedCount: number;
   baseTime: number;
@@ -58,6 +60,8 @@ export function createRun(
     timerFactor: timerSpeedFactor(skills),
     compass: hasCompass(skills),
     fogBonus: fogBonus(skills),
+    facingX: 1,
+    facingY: 0,
   };
 }
 
@@ -129,10 +133,14 @@ export function movePlayer(state: RunState, ix: number, iy: number, dt: number):
   }
   const won = status === "running" && Math.floor(py) * n + Math.floor(px) === maze.exit;
   if (state.status === "ready" && (ix !== 0 || iy !== 0)) status = "running";
+  const facingLen = Math.hypot(ix, iy);
+  const facing = facingLen > 0 ? { x: ix / facingLen, y: iy / facingLen } : null;
   return {
     ...state,
     px,
     py,
+    facingX: facing ? facing.x : state.facingX,
+    facingY: facing ? facing.y : state.facingY,
     player: Math.floor(py) * n + Math.floor(px),
     visited,
     visitedCount,

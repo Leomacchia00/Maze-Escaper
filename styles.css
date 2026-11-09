@@ -740,3 +740,44 @@ button:disabled {
     font-size: var(--text-title);
   }
 }
+
+/* ---------- Feedback di gioco: barra tempo & bump ---------- */
+#time-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-bg-sunken, #f0efdb);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+#time-bar-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--color-accent-solid, #22c55e);
+  transition: width 0.2s linear, background 0.3s ease;
+}
+
+#time-bar-fill.low {
+  background: var(--color-danger-text, #ba1a1a);
+  animation: time-pulse 1s ease-in-out infinite;
+}
+
+@keyframes time-pulse {
+  50% { opacity: 0.55; }
+}
+
+@keyframes canvas-bump {
+  0%, 100% { transform: translate(0, 0); }
+  30% { transform: translate(2px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+}
+
+#canvas-wrap.bump {
+  animation: canvas-bump 0.18s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #canvas-wrap.bump { animation: none; }
+  #time-bar-fill.low { animation: none; }
+}

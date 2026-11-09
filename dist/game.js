@@ -33,6 +33,8 @@ export function createRun(level, rng = Math.random, skills = {}) {
         timerFactor: timerSpeedFactor(skills),
         compass: hasCompass(skills),
         fogBonus: fogBonus(skills),
+        facingX: 1,
+        facingY: 0,
     };
 }
 export function tick(state, dtSeconds) {
@@ -110,10 +112,14 @@ export function movePlayer(state, ix, iy, dt) {
     const won = status === "running" && Math.floor(py) * n + Math.floor(px) === maze.exit;
     if (state.status === "ready" && (ix !== 0 || iy !== 0))
         status = "running";
+    const facingLen = Math.hypot(ix, iy);
+    const facing = facingLen > 0 ? { x: ix / facingLen, y: iy / facingLen } : null;
     return {
         ...state,
         px,
         py,
+        facingX: facing ? facing.x : state.facingX,
+        facingY: facing ? facing.y : state.facingY,
         player: Math.floor(py) * n + Math.floor(px),
         visited,
         visitedCount,

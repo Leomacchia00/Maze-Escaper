@@ -15,6 +15,7 @@ class App {
   private joyOrigin: { x: number; y: number } | null = null;
   private justSetRecord = false;
   private pauseReturnFocus: HTMLElement | null = null;
+  private bumpCooldown = 0;
 
   constructor(private document_: Document) {
     this.ui = queryUI(this.document_);
@@ -214,13 +215,34 @@ class App {
       fogRadius: fogRadius(this.run),
     });
     renderHud(this.ui, this.run.level, this.run.timeLeft, this.run.baseTime);
+    const bar = this.document_.getElementById("time-bar-fill");
+    if (bar) {
+      const frac = Math.max(0, Math.min(1, this.run.timeLeft / this.run.baseTime));
+      bar.style.width = `${(frac * 100).toFixed(1)}%`;
+      bar.classList.toggle("low", frac < 0.25);
+    }
   }
 
   private loop(ts: number): void {
     if (this.lastFrame !== null && this.run) {
       const dt = Math.min((ts - this.lastFrame) / 1000, 0.25);
-      const { ix, iy } = this.inputVector();
-      this.run = movePlayer(this.run, ix, iy, dt);
+      const input = this.inputVector();
+      const before = { px: this.run.px, py: this.run.py };
+      this.run = movePlayer(this.run, input.ix, input.iy, dt);
+      if ((input.ix !== 0 || input.iy !== 0) && this.bumpCooldown <= 0) {
+        const moved = Math.hypot(this.run.px - before.px, this.run.py - before.py);
+        if (moved < 1e-6) {
+          this.bumpCooldown = 0.4;
+          this.vibrate(15);
+          const wrap = this.document_.getElementById("canvas-wrap");
+          if (wrap) {
+            wrap.classList.remove("bump");
+            void wrap.offsetWidth;
+            wrap.classList.add("bump");
+          }
+        }
+      }
+      this.bumpCooldown = Math.max(0, this.bumpCooldown - dt);
       this.run = tick(this.run, dt);
       const finished = this.run.status === "won" || this.run.status === "lost";
       if (finished) {
