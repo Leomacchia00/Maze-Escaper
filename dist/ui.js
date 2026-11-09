@@ -39,10 +39,22 @@ function requireEl(root, id) {
         throw new Error(`missing element #${id}`);
     return el;
 }
+const SCREEN_TITLES = {
+    home: "Menu",
+    skills: "Skill",
+    run: "Partita",
+    result: "Risultato",
+};
 export function showScreen(ui, id) {
     for (const key of Object.keys(ui.screens)) {
         ui.screens[key].hidden = key !== id;
     }
+    const doc = ui.screens[id].ownerDocument;
+    if (doc) {
+        doc.title = `Maze Escaper — ${SCREEN_TITLES[id]}`;
+    }
+    const heading = ui.screens[id].querySelector("h1");
+    heading?.focus({ preventScroll: true });
 }
 export function renderHome(ui, player) {
     ui.homeLevel.textContent = String(player.level);

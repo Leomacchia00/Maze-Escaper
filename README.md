@@ -12,6 +12,10 @@ npm run serve      # http://localhost:8080 (python3 http.server)
 
 Il gioco è statico e offline-first: serve solo un server statico (i moduli ES non girano su `file://`).
 
+## Skill per agenti
+
+Il repo include skill vendorate in `skills/` (design UI, game dev canvas, testing) che **qualsiasi agente deve leggere e applicare** prima di lavorare sul progetto: vedi `AGENTS.md` per il routing per task e `skills/SOURCES.md` per fonti e licenze.
+
 ## Struttura
 
 - `src/maze.ts` — generazione perfect maze (recursive backtracker), BFS, uscita = cella più lontana

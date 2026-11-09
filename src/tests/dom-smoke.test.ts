@@ -58,6 +58,8 @@ function makeEl(id: string, canvases: Map<string, ReturnType<typeof makeCanvas>>
     appendChild(child: unknown) { children.push(child); },
     replaceChildren() { children.length = 0; },
     append(...rest: unknown[]) { children.push(...rest); },
+    focus(_opts?: unknown) {},
+    querySelector(_sel: string) { return { focus: (_o?: unknown) => {} }; },
   };
 }
 
@@ -78,6 +80,7 @@ function makeDocument() {
   ];
   for (const id of ids) els.set(id, makeEl(id, canvases));
   const doc = {
+    title: "",
     getElementById: (id: string) => els.get(id) ?? null,
     createElement: (_tag: string) => makeEl(`dynamic-${els.size}`, canvases),
     addEventListener: (type: string, fn: Listener) => {
@@ -91,8 +94,12 @@ function makeDocument() {
     },
   };
   let rafCb: ((ts: number) => void) | null = null;
+  for (const el of els.values()) {
+    (el as { ownerDocument?: unknown }).ownerDocument = doc;
+  }
   return {
     doc: doc as unknown as Document,
+    expectTitle: (t: string) => assert.ok((doc as { title: string }).title.includes(t)),
     els,
     docListeners,
     fireDoc(type: string, e: unknown) {
@@ -121,6 +128,7 @@ test("smoke DOM: run vinta mostra schermata risultato vittoria", async () => {
   const ui = harness.els;
   ui.get("btn-play")!.fire("click", {});
   assert.equal(ui.get("screen-run")!.hidden, false, "run screen visible");
+  harness.expectTitle("Partita");
 
   let won = false;
   const dirs = [KEY.up, KEY.right, KEY.down, KEY.left];

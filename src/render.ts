@@ -17,13 +17,23 @@ const COLORS = {
   fog: "4, 8, 18",
 };
 
+let reducedMotion: boolean | null = null;
+
+function prefersReducedMotion(): boolean {
+  if (reducedMotion === null) {
+    reducedMotion =
+      typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  return reducedMotion;
+}
+
 export function drawRun(canvas: HTMLCanvasElement, state: RunState, options: RenderOptions): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const maze = state.maze;
   const size = canvas.width;
   const cell = size / maze.n;
-  const now = typeof performance !== "undefined" ? performance.now() : 0;
+  const now = prefersReducedMotion() ? 0 : typeof performance !== "undefined" ? performance.now() : 0;
 
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, size, size);

@@ -9,6 +9,14 @@ const COLORS = {
     trail: "rgba(34, 211, 238, 0.14)",
     fog: "4, 8, 18",
 };
+let reducedMotion = null;
+function prefersReducedMotion() {
+    if (reducedMotion === null) {
+        reducedMotion =
+            typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    }
+    return reducedMotion;
+}
 export function drawRun(canvas, state, options) {
     const ctx = canvas.getContext("2d");
     if (!ctx)
@@ -16,7 +24,7 @@ export function drawRun(canvas, state, options) {
     const maze = state.maze;
     const size = canvas.width;
     const cell = size / maze.n;
-    const now = typeof performance !== "undefined" ? performance.now() : 0;
+    const now = prefersReducedMotion() ? 0 : typeof performance !== "undefined" ? performance.now() : 0;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, size, size);
     drawGrid(ctx, size, cell);

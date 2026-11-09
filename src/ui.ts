@@ -81,10 +81,23 @@ function requireEl(root: Document, id: string): HTMLElement {
   return el;
 }
 
+const SCREEN_TITLES: Record<ScreenId, string> = {
+  home: "Menu",
+  skills: "Skill",
+  run: "Partita",
+  result: "Risultato",
+};
+
 export function showScreen(ui: UIElements, id: ScreenId): void {
   for (const key of Object.keys(ui.screens) as ScreenId[]) {
     ui.screens[key].hidden = key !== id;
   }
+  const doc = ui.screens[id].ownerDocument as Document | undefined;
+  if (doc) {
+    doc.title = `Maze Escaper — ${SCREEN_TITLES[id]}`;
+  }
+  const heading = ui.screens[id].querySelector<HTMLElement>("h1");
+  heading?.focus({ preventScroll: true });
 }
 
 export function renderHome(ui: UIElements, player: PlayerState): void {

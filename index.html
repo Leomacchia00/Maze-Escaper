@@ -11,7 +11,7 @@
   <main id="app">
     <section id="screen-home" class="screen">
       <header class="brand">
-        <h1>Maze Escaper</h1>
+        <h1 tabindex="-1">Maze Escaper</h1>
         <p class="subtitle">Trova l'uscita prima che scada il tempo.</p>
       </header>
       <div class="menu-actions">
@@ -41,27 +41,28 @@
     </section>
 
     <section id="screen-skills" class="screen" hidden>
-      <h1>Skill</h1>
+      <h1 tabindex="-1">Skill</h1>
       <span class="chip currency-chip" id="skills-currency">Monete: 0</span>
       <div id="skills-list"></div>
       <button id="btn-back-skills">Menu</button>
     </section>
 
     <section id="screen-run" class="screen" hidden>
+      <h1 class="sr-only" tabindex="-1">Partita in corso</h1>
       <header class="run-header">
         <span class="chip" id="hud-level">Livello 1</span>
         <span class="chip time" id="hud-time">0.0s</span>
         <button id="btn-pause" aria-label="Pausa">⏸</button>
       </header>
       <div id="canvas-wrap">
-        <canvas id="maze-canvas" width="640" height="640"></canvas>
-        <div id="pause-overlay" hidden><p>In pausa</p><p class="hint">Esc o ⏸ per riprendere</p></div>
+        <canvas id="maze-canvas" width="640" height="640" role="img" aria-label="Labirinto di gioco"></canvas>
+        <div id="pause-overlay" role="dialog" aria-modal="true" aria-label="Gioco in pausa" tabindex="-1" hidden><p>In pausa</p><p class="hint">Esc o ⏸ per riprendere</p></div>
       </div>
       <p class="hint">Frecce/WASD · swipe su mobile · Esc per la pausa</p>
     </section>
 
     <section id="screen-result" class="screen" hidden>
-      <h1 id="result-title" class="result-title">Vittoria!</h1>
+      <h1 id="result-title" class="result-title" tabindex="-1">Vittoria!</h1>
       <div class="panel score-box">
         <p class="score" id="result-score-value">0</p>
         <p class="score-label">Punteggio</p>
@@ -72,7 +73,7 @@
         <div class="row"><span>Bonus efficienza</span><span id="breakdown-efficiency">+0</span></div>
       </div>
       <p class="record-badge" id="result-record"></p>
-      <canvas id="result-maze" width="360" height="360"></canvas>
+      <canvas id="result-maze" width="360" height="360" role="img" aria-label="Labirinto della run conclusa"></canvas>
       <div class="actions">
         <button id="btn-retry" class="primary">Riprova</button>
         <button id="btn-result-menu">Menu</button>

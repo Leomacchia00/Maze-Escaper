@@ -59,6 +59,8 @@ function makeEl(id, canvases) {
         appendChild(child) { children.push(child); },
         replaceChildren() { children.length = 0; },
         append(...rest) { children.push(...rest); },
+        focus(_opts) { },
+        querySelector(_sel) { return { focus: (_o) => { } }; },
     };
 }
 function makeDocument() {
@@ -79,6 +81,7 @@ function makeDocument() {
     for (const id of ids)
         els.set(id, makeEl(id, canvases));
     const doc = {
+        title: "",
         getElementById: (id) => els.get(id) ?? null,
         createElement: (_tag) => makeEl(`dynamic-${els.size}`, canvases),
         addEventListener: (type, fn) => {
@@ -92,8 +95,12 @@ function makeDocument() {
         },
     };
     let rafCb = null;
+    for (const el of els.values()) {
+        el.ownerDocument = doc;
+    }
     return {
         doc: doc,
+        expectTitle: (t) => assert.ok(doc.title.includes(t)),
         els,
         docListeners,
         fireDoc(type, e) {
@@ -119,6 +126,7 @@ test("smoke DOM: run vinta mostra schermata risultato vittoria", async () => {
     const ui = harness.els;
     ui.get("btn-play").fire("click", {});
     assert.equal(ui.get("screen-run").hidden, false, "run screen visible");
+    harness.expectTitle("Partita");
     let won = false;
     const dirs = [KEY.up, KEY.right, KEY.down, KEY.left];
     for (let i = 0; i < 60000 && !won; i++) {

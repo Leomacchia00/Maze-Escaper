@@ -17,6 +17,7 @@ class App {
         this.rafId = null;
         this.touchStart = null;
         this.justSetRecord = false;
+        this.pauseReturnFocus = null;
         this.ui = queryUI(this.document_);
         this.player = loadPlayerState();
         this.bind();
@@ -36,7 +37,12 @@ class App {
         this.ui.btnResultMenu.addEventListener("click", () => this.goHome());
         this.document_.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
-                this.togglePause();
+                if (this.ui.screens.skills.hidden === false) {
+                    this.goHome();
+                }
+                else {
+                    this.togglePause();
+                }
                 return;
             }
             const dir = KEY_MAP[e.key];
@@ -109,10 +115,15 @@ class App {
         if (this.run.status === "paused") {
             this.run = resume(this.run);
             setPauseOverlay(this.ui, false);
+            this.pauseReturnFocus?.focus({ preventScroll: true });
+            this.pauseReturnFocus = null;
         }
         else if (this.run.status === "running" || this.run.status === "ready") {
+            this.pauseReturnFocus =
+                this.document_.activeElement instanceof HTMLElement ? this.document_.activeElement : null;
             this.run = pause(this.run);
             setPauseOverlay(this.ui, true);
+            this.ui.pauseOverlay.focus({ preventScroll: true });
         }
         this.renderCurrent();
     }
