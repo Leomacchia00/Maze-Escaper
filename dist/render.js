@@ -6,6 +6,7 @@ const COLORS = {
     wallGlow: "rgba(34, 211, 238, 0.18)",
     player: "#34d399",
     exit: "#fb923c",
+    danger: "#f87171",
     trail: "rgba(34, 211, 238, 0.14)",
     fog: "4, 8, 18",
 };
@@ -17,6 +18,38 @@ function prefersReducedMotion() {
     }
     return reducedMotion;
 }
+const MOVE_MS = 90;
+let anim = null;
+let lastPlayerCell = -1;
+let lastMaze = null;
+function updateAnim(state, now) {
+    if (lastMaze !== state.maze) {
+        lastMaze = state.maze;
+        lastPlayerCell = state.player;
+        anim = null;
+        return;
+    }
+    if (state.player !== lastPlayerCell) {
+        anim = { from: lastPlayerCell, to: state.player, start: now };
+        lastPlayerCell = state.player;
+    }
+}
+function playerDrawPos(state, now) {
+    const cellPos = xy(state.maze, state.player);
+    if (!anim || prefersReducedMotion())
+        return cellPos;
+    const t = (now - anim.start) / MOVE_MS;
+    if (t >= 1) {
+        anim = null;
+        return cellPos;
+    }
+    const from = xy(state.maze, anim.from);
+    const e = 1 - (1 - Math.max(0, t)) ** 3;
+    return {
+        x: from.x + (cellPos.x - from.x) * e,
+        y: from.y + (cellPos.y - from.y) * e,
+    };
+}
 export function drawRun(canvas, state, options) {
     const ctx = canvas.getContext("2d");
     if (!ctx)
@@ -25,6 +58,7 @@ export function drawRun(canvas, state, options) {
     const size = canvas.width;
     const cell = size / maze.n;
     const now = prefersReducedMotion() ? 0 : typeof performance !== "undefined" ? performance.now() : 0;
+    updateAnim(state, now);
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, size, size);
     drawGrid(ctx, size, cell);
@@ -34,7 +68,8 @@ export function drawRun(canvas, state, options) {
         drawExit(ctx, maze, cell, now);
     }
     if (options.revealAll || visible(state, state.player, options.fogRadius)) {
-        drawPlayer(ctx, state, cell, now);
+        const pos = playerDrawPos(state, now);
+        drawPlayer(ctx, pos.x * cell + cell / 2, pos.y * cell + cell / 2, cell, now, state.status);
     }
     if (state.compass) {
         drawCompass(ctx, state, size);
@@ -42,6 +77,37 @@ export function drawRun(canvas, state, options) {
     if (!options.revealAll && options.fogRadius !== Infinity) {
         drawFog(ctx, state, options.fogRadius, cell);
     }
+    if (state.status === "won") {
+        drawWinRing(ctx, maze, cell, now);
+    }
+    else if (state.status === "lost") {
+        drawLostMark(ctx, state, cell);
+    }
+}
+function drawWinRing(ctx, maze, cell, now) {
+    const { x, y } = xy(maze, maze.exit);
+    const cx = x * cell + cell / 2;
+    const cy = y * cell + cell / 2;
+    const t = (now % 1200) / 1200;
+    ctx.strokeStyle = `rgba(52, 211, 153, ${(0.8 * (1 - t)).toFixed(2)})`;
+    ctx.lineWidth = Math.max(2, cell * 0.1);
+    ctx.beginPath();
+    ctx.arc(cx, cy, cell * (0.4 + t * 0.8), 0, Math.PI * 2);
+    ctx.stroke();
+}
+function drawLostMark(ctx, state, cell) {
+    const { x, y } = xy(state.maze, state.player);
+    const cx = x * cell + cell / 2;
+    const cy = y * cell + cell / 2;
+    const r = cell * 0.42;
+    ctx.strokeStyle = COLORS.danger;
+    ctx.lineWidth = Math.max(2, cell * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy - r);
+    ctx.lineTo(cx + r, cy + r);
+    ctx.moveTo(cx + r, cy - r);
+    ctx.lineTo(cx - r, cy + r);
+    ctx.stroke();
 }
 function visible(state, cellIndex, radius) {
     const n = state.maze.n;
@@ -131,17 +197,13 @@ function drawExit(ctx, maze, cell, now) {
     roundRectPath(ctx, cx - r, cy - r, r * 2, r * 2, r * 0.35);
     ctx.fill();
 }
-function drawPlayer(ctx, state, cell, now) {
-    const maze = state.maze;
-    const { x, y } = xy(maze, state.player);
-    const cx = x * cell + cell / 2;
-    const cy = y * cell + cell / 2;
+function drawPlayer(ctx, cx, cy, cell, now, status) {
     const r = cell * 0.3 + cell * 0.03 * Math.sin(now / 400);
     ctx.fillStyle = "rgba(52, 211, 153, 0.2)";
     ctx.beginPath();
     ctx.arc(cx, cy, r * 1.7, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = COLORS.player;
+    ctx.fillStyle = status === "won" ? "#a7f3d0" : COLORS.player;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fill();

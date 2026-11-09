@@ -104,10 +104,27 @@ class App {
         if (after === before)
             return;
         this.run = after;
-        if (after.status === "won")
+        if (after.status === "won") {
+            this.vibrate([20, 40, 20]);
             this.finishRun(true);
-        else if (after.status === "lost")
+        }
+        else if (after.status === "lost") {
+            this.vibrate(60);
             this.finishRun(false);
+        }
+        else {
+            this.vibrate(8);
+        }
+    }
+    vibrate(pattern) {
+        try {
+            if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+                navigator.vibrate(pattern);
+            }
+        }
+        catch {
+            // vibration not available
+        }
     }
     togglePause() {
         if (!this.run)

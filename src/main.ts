@@ -115,8 +115,25 @@ class App {
     const after = tryMove(before, dir);
     if (after === before) return;
     this.run = after;
-    if (after.status === "won") this.finishRun(true);
-    else if (after.status === "lost") this.finishRun(false);
+    if (after.status === "won") {
+      this.vibrate([20, 40, 20]);
+      this.finishRun(true);
+    } else if (after.status === "lost") {
+      this.vibrate(60);
+      this.finishRun(false);
+    } else {
+      this.vibrate(8);
+    }
+  }
+
+  private vibrate(pattern: number | number[]): void {
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(pattern);
+      }
+    } catch {
+      // vibration not available
+    }
   }
 
   private togglePause(): void {
