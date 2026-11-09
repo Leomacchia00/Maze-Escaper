@@ -177,9 +177,8 @@ function drawExit(ctx, maze, cell, now) {
     ctx.fill();
 }
 function drawPlayer(ctx, state, cell, now) {
-    const n = state.maze.n;
-    const cx = (state.px % n + 0.5) * cell;
-    const cy = (Math.floor(state.py / n) + 0.5) * cell;
+    const cx = state.px * cell;
+    const cy = state.py * cell;
     const r = cell * 0.28;
     const fx = state.facingX || 1;
     const fy = state.facingY || 0;
@@ -269,6 +268,18 @@ function drawFog(ctx, state, radius, cell, size) {
         ctx.fillRect(0, 0, size, size);
     }
 }
+function drawTrail(ctx, state, cell) {
+    ctx.fillStyle = COLORS.trail;
+    for (let i = 0; i < state.maze.n * state.maze.n; i++) {
+        if (!state.visited[i])
+            continue;
+        const x = (i % state.maze.n) * cell;
+        const y = Math.floor(i / state.maze.n) * cell;
+        ctx.beginPath();
+        ctx.roundRect(x + cell * 0.22, y + cell * 0.22, cell * 0.56, cell * 0.56, cell * 0.16);
+        ctx.fill();
+    }
+}
 function drawConfetti(ctx, size, now) {
     const rand = mulberry32(424242);
     for (let k = 0; k < 42; k++) {
@@ -293,6 +304,7 @@ export function drawRun(canvas, state, options) {
     const cell = size / state.maze.n;
     const now = prefersReducedMotion() ? 0 : typeof performance !== "undefined" ? performance.now() : 0;
     drawStatic(ctx, state.maze, size);
+    drawTrail(ctx, state, cell);
     if (options.revealAll || visible(state, state.maze.exit, options.fogRadius)) {
         drawExit(ctx, state.maze, cell, now);
     }
