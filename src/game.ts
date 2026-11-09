@@ -9,6 +9,8 @@ export interface RunState {
   level: number;
   maze: Maze;
   player: number;
+  px: number;
+  py: number;
   visited: Uint8Array;
   visitedCount: number;
   baseTime: number;
@@ -47,6 +49,8 @@ export function createRun(
     level,
     maze,
     player: maze.entrance,
+    px: (maze.entrance % n) + 0.5,
+    py: Math.floor(maze.entrance / n) + 0.5,
     visited,
     visitedCount: 1,
     baseTime,
@@ -92,6 +96,79 @@ export function tryMove(state: RunState, dir: Direction): RunState {
     timeLeft,
     status,
     moves: state.moves + 1,
+  };
+}
+
+
+export const PLAYER_RADIUS = 0.3;
+export const RUN_SPEED = 4.5;
+const EPS = 1e-6;
+const MAX_SUBSTEP = 0.2;
+
+export function movePlayer(state: RunState, ix: number, iy: number, dt: number): RunState {
+  if (state.status !== "running" && state.status !== "ready") return state;
+  const maze = state.maze;
+  const n = maze.n;
+  const r = PLAYER_RADIUS;
+  const dist = RUN_SPEED * Math.min(Math.max(dt, 0), 0.1);
+  const steps = Math.max(1, Math.ceil(dist / MAX_SUBSTEP));
+  const sdt = dt / steps;
+  let px = state.px;
+  let py = state.py;
+  let visited = state.visited;
+  let visitedCount = state.visitedCount;
+  let timeLeft = state.timeLeft;
+  let moves = state.moves;
+  let status = state.status;
+  for (let i = 0; i < steps; i++) {
+    if (ix !== 0) {
+      const next = px + ix * RUN_SPEED * sdt;
+      const r0 = Math.floor(py - r + EPS);
+      const r1 = Math.floor(py + r - EPS);
+      const cL = Math.floor(next - r + EPS);
+      const cR = Math.floor(next + r - EPS);
+      let blocked = false;
+      for (let ry = r0; ry <= r1 && !blocked; ry++) {
+        for (let b = cL + 1; b <= cR; b++) {
+          if (b >= n || maze.walls[ry * n + b] & LEFT) { blocked = true; break; }
+        }
+      }
+      px = blocked ? (ix > 0 ? cR - r : cL + 1 + r) : next;
+    }
+    if (iy !== 0) {
+      const next = py + iy * RUN_SPEED * sdt;
+      const c0 = Math.floor(px - r + EPS);
+      const c1 = Math.floor(px + r - EPS);
+      const rT = Math.floor(next - r + EPS);
+      const rB = Math.floor(next + r - EPS);
+      let blocked = false;
+      for (let cx = c0; cx <= c1 && !blocked; cx++) {
+        for (let b = rT + 1; b <= rB; b++) {
+          if (b >= n || maze.walls[b * n + cx] & TOP) { blocked = true; break; }
+        }
+      }
+      py = blocked ? (iy > 0 ? rB - r : rT + 1 + r) : next;
+    }
+    const cell = Math.floor(py) * n + Math.floor(px);
+    if (!visited[cell]) {
+      visited = visited.slice();
+      visited[cell] = 1;
+      visitedCount += 1;
+      timeLeft += VISIT_BONUS_SECONDS;
+    }
+  }
+  const won = status === "running" && Math.floor(py) * n + Math.floor(px) === maze.exit;
+  if (state.status === "ready" && (ix !== 0 || iy !== 0)) status = "running";
+  return {
+    ...state,
+    px,
+    py,
+    player: Math.floor(py) * n + Math.floor(px),
+    visited,
+    visitedCount,
+    timeLeft,
+    moves: moves + (Math.floor(py) * n + Math.floor(px) === Math.floor(state.py) * n + Math.floor(state.px) ? 0 : 1),
+    status: won ? "won" : status,
   };
 }
 

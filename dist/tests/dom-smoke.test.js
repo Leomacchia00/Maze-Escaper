@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { bfs, canMove, neighborIndex, TOP, RIGHT, BOTTOM, LEFT } from "../maze.js";
 function makeCanvas() {
     const ctx = new Proxy({}, {
         get: (_t, prop) => {
@@ -96,6 +97,7 @@ function makeDocument() {
                 rafCb = cb;
                 return 1;
             },
+            addEventListener: (_type, _fn) => { },
         },
     };
     let rafCb = null;
@@ -122,23 +124,64 @@ const KEY = { up: "ArrowUp", right: "ArrowRight", down: "ArrowDown", left: "Arro
 function pressKey(harness, key) {
     harness.fireDoc("keydown", { key, preventDefault: () => { } });
 }
+function releaseKey(harness, key) {
+    harness.fireDoc("keyup", { key, preventDefault: () => { } });
+}
+function followPath(harness, app, path, n) {
+    const getRun = () => app.run;
+    let ts = 16;
+    for (const cell of path) {
+        const state = getRun();
+        if (!state)
+            break;
+        const tx = (cell % n) + 0.5;
+        const ty = Math.floor(cell / n) + 0.5;
+        const dx = tx - state.px;
+        const dy = ty - state.py;
+        const key = Math.abs(dx) > Math.abs(dy)
+            ? dx > 0 ? KEY.right : KEY.left
+            : dy > 0 ? KEY.down : KEY.up;
+        pressKey(harness, key);
+        for (let f = 0; f < 90; f++) {
+            harness.frame(ts);
+            ts += 16;
+            const now = getRun();
+            if (!now || (Math.abs(now.px - tx) < 0.06 && Math.abs(now.py - ty) < 0.06))
+                break;
+        }
+        releaseKey(harness, key);
+    }
+}
 test("smoke DOM: run vinta mostra schermata risultato vittoria", async () => {
     const harness = makeDocument();
     const { boot } = await import("../main.js");
-    boot(harness.doc);
+    const app = boot(harness.doc);
     harness.frame(0);
     const ui = harness.els;
     ui.get("btn-play").fire("click", {});
     assert.equal(ui.get("screen-run").hidden, false, "run screen visible");
     harness.expectTitle("Partita");
-    let won = false;
-    const dirs = [KEY.up, KEY.right, KEY.down, KEY.left];
-    for (let i = 0; i < 60000 && !won; i++) {
-        pressKey(harness, dirs[Math.floor(Math.random() * dirs.length)]);
-        if (ui.get("screen-result").hidden === false)
-            won = true;
+    const getRun = () => app.run;
+    const maze = getRun().maze;
+    const n = maze.n;
+    const dist = bfs(maze, maze.entrance);
+    const path = [];
+    let cur = maze.exit;
+    while (cur !== maze.entrance) {
+        for (const dir of [TOP, RIGHT, BOTTOM, LEFT]) {
+            if (!canMove(maze, cur, dir))
+                continue;
+            const next = neighborIndex(n, cur, dir);
+            if (dist[next] === dist[cur] - 1) {
+                path.push(cur);
+                cur = next;
+                break;
+            }
+        }
     }
-    assert.ok(won, "random-walk keypresses must eventually reach the exit");
+    path.reverse();
+    followPath(harness, app, path, n);
+    assert.equal(ui.get("screen-result").hidden, false, "result screen shown after reaching the exit");
     assert.ok(ui.get("result-title").textContent.includes("Vittoria"), "victory title shown");
     assert.notEqual(ui.get("result-score-value").textContent, "—", "score shown on win");
     assert.equal(ui.get("result-breakdown").hidden, false, "score breakdown visible on win");
@@ -167,12 +210,12 @@ test("smoke DOM: tempo scaduto mostra schermata sconfitta con labirinto visibile
     const ui = harness.els;
     ui.get("btn-play").fire("click", {});
     assert.equal(ui.get("screen-run").hidden, false);
-    for (const key of [KEY.up, KEY.right, KEY.down, KEY.left]) {
-        pressKey(harness, key);
-    }
+    pressKey(harness, KEY.up);
+    harness.frame(16);
+    releaseKey(harness, KEY.up);
     const t0 = Number(ui.get("hud-time").textContent.replace("s", ""));
     assert.ok(t0 > 0, "timer started after first move");
-    let ts = 16;
+    let ts = 32;
     for (let i = 0; i < 4000; i++) {
         harness.frame(ts);
         ts += 16;

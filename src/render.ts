@@ -7,15 +7,15 @@ export interface RenderOptions {
 }
 
 const COLORS = {
-  background: "#070b14",
-  grid: "rgba(34, 211, 238, 0.05)",
-  wall: "#22d3ee",
-  wallGlow: "rgba(34, 211, 238, 0.18)",
-  player: "#34d399",
-  exit: "#fb923c",
-  danger: "#f87171",
-  trail: "rgba(34, 211, 238, 0.14)",
-  fog: "4, 8, 18",
+  background: "#fcfae6",
+  grid: "rgba(22, 163, 74, 0.08)",
+  wall: "#15803d",
+  wallGlow: "rgba(22, 163, 74, 0.16)",
+  player: "#38bdf8",
+  exit: "#facc15",
+  danger: "#ba1a1a",
+  trail: "rgba(34, 197, 94, 0.22)",
+  fog: "252, 250, 230",
 };
 
 let reducedMotion: boolean | null = null;
@@ -28,46 +28,6 @@ function prefersReducedMotion(): boolean {
   return reducedMotion;
 }
 
-interface PlayerAnim {
-  from: number;
-  to: number;
-  start: number;
-}
-
-const MOVE_MS = 90;
-let anim: PlayerAnim | null = null;
-let lastPlayerCell = -1;
-let lastMaze: Maze | null = null;
-
-function updateAnim(state: RunState, now: number): void {
-  if (lastMaze !== state.maze) {
-    lastMaze = state.maze;
-    lastPlayerCell = state.player;
-    anim = null;
-    return;
-  }
-  if (state.player !== lastPlayerCell) {
-    anim = { from: lastPlayerCell, to: state.player, start: now };
-    lastPlayerCell = state.player;
-  }
-}
-
-function playerDrawPos(state: RunState, now: number): { x: number; y: number } {
-  const cellPos = xy(state.maze, state.player);
-  if (!anim || prefersReducedMotion()) return cellPos;
-  const t = (now - anim.start) / MOVE_MS;
-  if (t >= 1) {
-    anim = null;
-    return cellPos;
-  }
-  const from = xy(state.maze, anim.from);
-  const e = 1 - (1 - Math.max(0, t)) ** 3;
-  return {
-    x: from.x + (cellPos.x - from.x) * e,
-    y: from.y + (cellPos.y - from.y) * e,
-  };
-}
-
 export function drawRun(canvas: HTMLCanvasElement, state: RunState, options: RenderOptions): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -75,8 +35,6 @@ export function drawRun(canvas: HTMLCanvasElement, state: RunState, options: Ren
   const size = canvas.width;
   const cell = size / maze.n;
   const now = prefersReducedMotion() ? 0 : typeof performance !== "undefined" ? performance.now() : 0;
-  updateAnim(state, now);
-
   ctx.fillStyle = COLORS.background;
   ctx.fillRect(0, 0, size, size);
   drawGrid(ctx, size, cell);
@@ -89,8 +47,7 @@ export function drawRun(canvas: HTMLCanvasElement, state: RunState, options: Ren
   }
 
   if (options.revealAll || visible(state, state.player, options.fogRadius)) {
-    const pos = playerDrawPos(state, now);
-    drawPlayer(ctx, pos.x * cell + cell / 2, pos.y * cell + cell / 2, cell, now, state.status);
+    drawPlayer(ctx, state.px * cell, state.py * cell, cell, now, state.status);
   }
 
   if (state.compass) {

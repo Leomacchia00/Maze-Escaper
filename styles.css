@@ -6,68 +6,54 @@
    ============================================================ */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* ---------- Primitive: neutral ramp (freddo, hue 255) ---------- */
-  --neutral-50: oklch(0.97 0.006 255);
-  --neutral-100: oklch(0.93 0.008 255);
-  --neutral-200: oklch(0.85 0.012 255);
-  --neutral-300: oklch(0.72 0.02 255);
-  --neutral-400: oklch(0.62 0.025 255);
-  --neutral-500: oklch(0.55 0.025 255);
-  --neutral-600: oklch(0.45 0.025 255);
-  --neutral-700: oklch(0.37 0.028 255);
-  --neutral-800: oklch(0.28 0.03 255);
-  --neutral-900: oklch(0.21 0.03 255);
-  --neutral-950: oklch(0.15 0.025 255);
-  --neutral-1000: oklch(0.12 0.02 255);
-
-  /* ---------- Primitive: accent ramp (ciano, hue 200) ---------- */
-  --accent-300: oklch(0.82 0.1 205);
-  --accent-400: oklch(0.76 0.125 205);
-  --accent-500: oklch(0.71 0.135 205);
-  --accent-600: oklch(0.64 0.135 205);
-  --accent-700: oklch(0.55 0.125 205);
-
-  /* ---------- Primitive: status (success, danger) ---------- */
-  --success-300: oklch(0.82 0.12 155);
-  --success-600: oklch(0.7 0.15 155);
-  --danger-300: oklch(0.74 0.14 25);
-  --danger-600: oklch(0.63 0.19 25);
+  /* ---------- Primitive: crema & foresta (Prato Soleggiato) ---------- */
+  --neutral-50: #fefce8;
+  --neutral-100: #fcfae6;
+  --neutral-200: #f0efdb;
+  --neutral-300: #e5e3d0;
+  --neutral-400: #bdbaa4;
+  --neutral-500: #9a977f;
+  --neutral-600: #7d8471;
+  --neutral-700: #55603f;
+  --neutral-800: #3d4a3d;
+  --neutral-900: #2a3a2c;
+  --neutral-1000: #16241a;
 
   /* ---------- Semantici: superfici ---------- */
-  --color-bg-page: var(--neutral-1000);
-  --color-bg-surface: var(--neutral-900);
-  --color-bg-raised: var(--neutral-800);
-  --color-bg-sunken: var(--neutral-1000);
-  --color-bg-scrim: oklch(0.12 0.02 255 / 0.92);
+  --color-bg-page: var(--neutral-100);
+  --color-bg-surface: #ffffff;
+  --color-bg-raised: #ffffff;
+  --color-bg-sunken: var(--neutral-200);
+  --color-bg-scrim: oklch(0.25 0.04 140 / 0.55);
 
   /* ---------- Semantici: testo ---------- */
-  --color-text-primary: var(--neutral-50);
-  --color-text-secondary: var(--neutral-300);
-  --color-text-muted: var(--neutral-400);
-  --color-text-on-accent: var(--neutral-1000);
+  --color-text-primary: #14532d;
+  --color-text-secondary: #365314;
+  --color-text-muted: #6d7b6c;
+  --color-text-on-accent: #ffffff;
 
   /* ---------- Semantici: bordi ---------- */
-  --color-border-subtle: var(--neutral-700);
-  --color-border-default: var(--neutral-600);
-  --color-border-strong: var(--neutral-400);
-  --color-focus-ring: var(--accent-400);
+  --color-border-subtle: #e2e8d5;
+  --color-border-default: #bbf7d0;
+  --color-border-strong: #15803d;
+  --color-focus-ring: #38bdf8;
 
   /* ---------- Semantici: accent ---------- */
-  --color-accent-subtle: oklch(0.71 0.135 205 / 0.1);
-  --color-accent-border: oklch(0.71 0.135 205 / 0.4);
-  --color-accent-solid: var(--accent-500);
-  --color-accent-solid-hover: var(--accent-600);
-  --color-accent-text: var(--accent-300);
+  --color-accent-subtle: #dcfce7;
+  --color-accent-border: #86efac;
+  --color-accent-solid: #22c55e;
+  --color-accent-solid-hover: #16a34a;
+  --color-accent-text: #15803d;
 
   /* ---------- Semantici: status ---------- */
-  --color-success-subtle: oklch(0.7 0.15 155 / 0.12);
-  --color-success-border: oklch(0.7 0.15 155 / 0.45);
-  --color-success-text: var(--success-300);
-  --color-danger-subtle: oklch(0.63 0.19 25 / 0.12);
-  --color-danger-border: oklch(0.63 0.19 25 / 0.5);
-  --color-danger-text: var(--danger-300);
+  --color-success-subtle: #dcfce7;
+  --color-success-border: #86efac;
+  --color-success-text: #15803d;
+  --color-danger-subtle: #fee2e2;
+  --color-danger-border: #fca5a5;
+  --color-danger-text: #ba1a1a;
 
   /* ---------- Scala tipografica (size / line-height) ---------- */
   --text-caption: 0.8125rem;
@@ -100,7 +86,9 @@
   /* ---------- Ombre ---------- */
   --shadow-1: 0 1px 2px oklch(0 0 0 / 0.3), 0 2px 8px oklch(0 0 0 / 0.25);
   --shadow-2: 0 4px 12px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.4);
-  --shadow-accent: 0 6px 24px oklch(0.71 0.135 205 / 0.25);
+  --shadow-accent: 0 6px 24px rgba(34, 197, 94, 0.3);
+  --font-display: "Comfortaa", "Quicksand", system-ui, sans-serif;
+  --font-body: "Rubik", "Quicksand", system-ui, sans-serif;
 }
 
 /* ---------- Reset ---------- */
@@ -121,10 +109,10 @@ body {
 
 body {
   background:
-    radial-gradient(1000px 500px at 50% -10%, oklch(0.71 0.135 205 / 0.07), transparent 60%),
+    radial-gradient(1000px 500px at 50% -10%, rgba(250, 204, 21, 0.1), transparent 60%),
     var(--color-bg-page);
   color: var(--color-text-primary);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Rubik", "Quicksand", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: var(--text-body);
   line-height: var(--text-body-lh);
   -webkit-font-smoothing: antialiased;
@@ -187,6 +175,11 @@ body {
 
 /* ---------- Tipografia ---------- */
 
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
 h1 {
   font-size: var(--text-title);
   line-height: var(--text-title-lh);
@@ -219,7 +212,7 @@ p {
   line-height: var(--text-display-lh);
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(90deg, var(--accent-400), var(--accent-300));
+  background: linear-gradient(90deg, var(--color-accent-solid), #facc15);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -298,11 +291,16 @@ button.primary {
   border: none;
   color: var(--color-text-on-accent);
   font-weight: 700;
-  box-shadow: var(--shadow-accent);
+  box-shadow: 0 4px 0 #16a34a, var(--shadow-accent);
 }
 
 button.primary:hover:not(:disabled) {
   filter: brightness(1.08);
+}
+
+button.primary:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #16a34a, var(--shadow-accent);
 }
 
 button.danger {
@@ -659,7 +657,7 @@ button:disabled {
 .level-dots .dot.on {
   background: var(--color-accent-solid);
   border-color: var(--color-accent-solid);
-  box-shadow: 0 0 6px oklch(0.71 0.135 205 / 0.6);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
 }
 
 /* ---------- Impostazioni ---------- */

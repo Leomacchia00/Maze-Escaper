@@ -1,21 +1,17 @@
-import { createRun, tick, tryMove, pause, resume, computeScoreBreakdown, fogRadius, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
+import { createRun, tick, movePlayer, pause, resume, computeScoreBreakdown, fogRadius } from "./game.js";
 import { drawRun } from "./render.js";
 import { loadPlayerState, savePlayerState, recordRunResult, defaultPlayerState } from "./storage.js";
 import { awardRunCoins, buySkill } from "./skills.js";
 import { queryUI, showScreen, renderHome, renderHud, renderSkills, renderSettings, setPauseOverlay, renderResult } from "./ui.js";
-const KEY_MAP = {
-    ArrowUp: TOP, w: TOP, W: TOP,
-    ArrowRight: RIGHT, d: RIGHT, D: RIGHT,
-    ArrowDown: BOTTOM, s: BOTTOM, S: BOTTOM,
-    ArrowLeft: LEFT, a: LEFT, A: LEFT,
-};
 class App {
     constructor(document_) {
         this.document_ = document_;
         this.run = null;
         this.lastFrame = null;
         this.rafId = null;
-        this.touchStart = null;
+        this.keys = new Set();
+        this.joyVec = { x: 0, y: 0 };
+        this.joyOrigin = null;
         this.justSetRecord = false;
         this.pauseReturnFocus = null;
         this.ui = queryUI(this.document_);
@@ -50,8 +46,7 @@ class App {
         });
         this.ui.btnResetProgress.addEventListener("click", () => this.resetProgress());
         this.ui.btnRetry.addEventListener("click", () => {
-            if (this.run)
-                this.startRun(this.run.level);
+            this.startRun(this.player.level);
         });
         this.ui.btnResultMenu.addEventListener("click", () => this.goHome());
         this.document_.addEventListener("keydown", (e) => {
@@ -64,30 +59,37 @@ class App {
                 }
                 return;
             }
-            const dir = KEY_MAP[e.key];
-            if (dir && this.run) {
-                e.preventDefault();
-                this.handleMove(dir);
-            }
+            const k = e.key.toLowerCase();
+            this.keys.add(k);
         });
+        this.document_.addEventListener("keyup", (e) => {
+            this.keys.delete(e.key.toLowerCase());
+        });
+        this.document_.defaultView?.addEventListener("blur", () => this.keys.clear());
         const wrap = this.document_.getElementById("canvas-wrap");
         wrap.addEventListener("touchstart", (e) => {
             const t = e.changedTouches[0];
-            this.touchStart = { x: t.clientX, y: t.clientY };
+            this.joyOrigin = { x: t.clientX, y: t.clientY };
+            this.joyVec = { x: 0, y: 0 };
         }, { passive: true });
-        wrap.addEventListener("touchend", (e) => {
-            if (!this.touchStart)
+        wrap.addEventListener("touchmove", (e) => {
+            if (!this.joyOrigin)
                 return;
+            e.preventDefault();
             const t = e.changedTouches[0];
-            const dx = t.clientX - this.touchStart.x;
-            const dy = t.clientY - this.touchStart.y;
-            this.touchStart = null;
-            if (Math.max(Math.abs(dx), Math.abs(dy)) < 24)
-                return;
-            const dir = Math.abs(dx) > Math.abs(dy)
-                ? dx > 0 ? RIGHT : LEFT
-                : dy > 0 ? BOTTOM : TOP;
-            this.handleMove(dir);
+            const max = 48;
+            let dx = (t.clientX - this.joyOrigin.x) / max;
+            let dy = (t.clientY - this.joyOrigin.y) / max;
+            const len = Math.hypot(dx, dy);
+            if (len > 1) {
+                dx /= len;
+                dy /= len;
+            }
+            this.joyVec = { x: dx, y: dy };
+        }, { passive: false });
+        wrap.addEventListener("touchend", () => {
+            this.joyOrigin = null;
+            this.joyVec = { x: 0, y: 0 };
         }, { passive: true });
     }
     goHome() {
@@ -131,28 +133,6 @@ class App {
         showScreen(this.ui, "run");
         setPauseOverlay(this.ui, false);
         this.renderCurrent();
-    }
-    handleMove(dir) {
-        if (!this.run)
-            return;
-        if (this.run.status === "paused")
-            return;
-        const before = this.run;
-        const after = tryMove(before, dir);
-        if (after === before)
-            return;
-        this.run = after;
-        if (after.status === "won") {
-            this.vibrate([20, 40, 20]);
-            this.finishRun(true);
-        }
-        else if (after.status === "lost") {
-            this.vibrate(60);
-            this.finishRun(false);
-        }
-        else {
-            this.vibrate(8);
-        }
     }
     vibrate(pattern) {
         if (this.player.settings?.vibration === false)
@@ -226,13 +206,43 @@ class App {
     loop(ts) {
         if (this.lastFrame !== null && this.run) {
             const dt = Math.min((ts - this.lastFrame) / 1000, 0.25);
+            const { ix, iy } = this.inputVector();
+            this.run = movePlayer(this.run, ix, iy, dt);
             this.run = tick(this.run, dt);
-            if (this.run.status === "lost")
-                this.finishRun(false);
+            const finished = this.run.status === "won" || this.run.status === "lost";
+            if (finished) {
+                const won = this.run.status === "won";
+                this.finishRun(won);
+                this.run = null;
+                if (won)
+                    this.vibrate([20, 40, 20]);
+                else
+                    this.vibrate(60);
+            }
             this.renderCurrent();
         }
         this.lastFrame = ts;
         this.rafId = this.document_.defaultView.requestAnimationFrame(this.loop);
+    }
+    inputVector() {
+        let ix = 0;
+        let iy = 0;
+        if (this.keys.has("arrowup") || this.keys.has("w"))
+            iy -= 1;
+        if (this.keys.has("arrowdown") || this.keys.has("s"))
+            iy += 1;
+        if (this.keys.has("arrowleft") || this.keys.has("a"))
+            ix -= 1;
+        if (this.keys.has("arrowright") || this.keys.has("d"))
+            ix += 1;
+        ix += this.joyVec.x;
+        iy += this.joyVec.y;
+        const mag = Math.hypot(ix, iy);
+        if (mag > 1) {
+            ix /= mag;
+            iy /= mag;
+        }
+        return { ix, iy };
     }
 }
 function boot(doc) {
