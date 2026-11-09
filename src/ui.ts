@@ -2,7 +2,7 @@ import { PlayerState } from "./storage.js";
 import { SKILLS, SkillNode, canBuy, skillCost, skillLevel } from "./skills.js";
 import { ScoreBreakdown } from "./game.js";
 
-export type ScreenId = "home" | "run" | "result" | "skills";
+export type ScreenId = "home" | "run" | "result" | "skills" | "settings";
 
 export interface ResultInfo {
   won: boolean;
@@ -23,6 +23,7 @@ export interface UIElements {
   skillsCurrency: HTMLElement;
   btnBackSkills: HTMLButtonElement;
   btnSkills: HTMLButtonElement;
+  btnSettings: HTMLButtonElement;
   hudTime: HTMLElement;
   hudLevel: HTMLElement;
   pauseOverlay: HTMLElement;
@@ -38,6 +39,11 @@ export interface UIElements {
   btnPause: HTMLButtonElement;
   btnRetry: HTMLButtonElement;
   btnResultMenu: HTMLButtonElement;
+  btnBackRun: HTMLButtonElement;
+  btnBackResult: HTMLButtonElement;
+  btnBackSettings: HTMLButtonElement;
+  settingVibration: HTMLInputElement;
+  btnResetProgress: HTMLButtonElement;
 }
 
 export function queryUI(root: Document = document): UIElements {
@@ -47,6 +53,7 @@ export function queryUI(root: Document = document): UIElements {
       run: requireEl(root, "screen-run"),
       result: requireEl(root, "screen-result"),
       skills: requireEl(root, "screen-skills"),
+      settings: requireEl(root, "screen-settings"),
     },
     homeLevel: requireEl(root, "home-level"),
     homeCurrency: requireEl(root, "home-currency"),
@@ -57,6 +64,7 @@ export function queryUI(root: Document = document): UIElements {
     skillsCurrency: requireEl(root, "skills-currency"),
     btnBackSkills: requireEl(root, "btn-back-skills") as HTMLButtonElement,
     btnSkills: requireEl(root, "btn-skills") as HTMLButtonElement,
+    btnSettings: requireEl(root, "btn-settings") as HTMLButtonElement,
     hudTime: requireEl(root, "hud-time"),
     hudLevel: requireEl(root, "hud-level"),
     pauseOverlay: requireEl(root, "pause-overlay"),
@@ -72,6 +80,11 @@ export function queryUI(root: Document = document): UIElements {
     btnPause: requireEl(root, "btn-pause") as HTMLButtonElement,
     btnRetry: requireEl(root, "btn-retry") as HTMLButtonElement,
     btnResultMenu: requireEl(root, "btn-result-menu") as HTMLButtonElement,
+    btnBackRun: requireEl(root, "btn-back-run") as HTMLButtonElement,
+    btnBackResult: requireEl(root, "btn-back-result") as HTMLButtonElement,
+    btnBackSettings: requireEl(root, "btn-back-settings") as HTMLButtonElement,
+    settingVibration: requireEl(root, "setting-vibration") as HTMLInputElement,
+    btnResetProgress: requireEl(root, "btn-reset-progress") as HTMLButtonElement,
   };
 }
 
@@ -84,6 +97,7 @@ function requireEl(root: Document, id: string): HTMLElement {
 const SCREEN_TITLES: Record<ScreenId, string> = {
   home: "Menu",
   skills: "Skill",
+  settings: "Impostazioni",
   run: "Partita",
   result: "Risultato",
 };
@@ -102,6 +116,7 @@ export function showScreen(ui: UIElements, id: ScreenId): void {
 
 export function renderHome(ui: UIElements, player: PlayerState): void {
   ui.homeLevel.textContent = String(player.level);
+  ui.settingVibration.checked = player.settings.vibration;
   ui.homeCurrency.textContent = String(player.currency);
   ui.statRuns.textContent = String(player.stats.played);
   ui.statWins.textContent = String(player.stats.won);
@@ -148,6 +163,10 @@ export function renderResult(ui: UIElements, info: ResultInfo): void {
       : "Il labirinto resta visibile per la revisione del percorso.";
 
   ui.resultMaze.hidden = info.won;
+}
+
+export function renderSettings(ui: UIElements, player: PlayerState): void {
+  ui.settingVibration.checked = player.settings.vibration;
 }
 
 export function renderSkills(

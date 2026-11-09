@@ -30,6 +30,7 @@ function makeEl(id, canvases) {
         textContent: "",
         className: "",
         disabled: false,
+        checked: false,
         children,
         classList: {
             toggle(name, force) {
@@ -68,14 +69,16 @@ function makeDocument() {
     const els = new Map();
     const docListeners = {};
     const ids = [
-        "screen-home", "screen-run", "screen-result", "screen-skills",
+        "screen-home", "screen-run", "screen-result", "screen-skills", "screen-settings",
         "home-level", "home-currency", "stat-runs", "stat-wins", "stat-losses",
         "hud-time", "hud-level",
         "skills-list", "skills-currency",
         "pause-overlay", "result-title", "result-score-value", "result-breakdown",
         "breakdown-time", "breakdown-size", "breakdown-efficiency", "result-record",
         "maze-canvas", "result-maze",
-        "btn-play", "btn-skills", "btn-back-skills", "btn-pause", "btn-retry", "btn-result-menu",
+        "btn-play", "btn-skills", "btn-settings", "btn-back-skills", "btn-back-settings",
+        "btn-back-run", "btn-back-result", "btn-pause", "btn-retry", "btn-result-menu",
+        "setting-vibration", "btn-reset-progress",
         "canvas-wrap", "app",
     ];
     for (const id of ids)
@@ -182,4 +185,45 @@ test("smoke DOM: tempo scaduto mostra schermata sconfitta con labirinto visibile
     assert.equal(ui.get("result-maze").hidden, false, "maze visible for path review on loss");
     ui.get("btn-retry").fire("click", {});
     assert.equal(ui.get("screen-run").hidden, false, "retry restarts the run");
+});
+test("smoke DOM: impostazioni mostrano toggle e reset progressi", async () => {
+    const harness = makeDocument();
+    const { boot } = await import("../main.js");
+    boot(harness.doc);
+    harness.frame(0);
+    const ui = harness.els;
+    ui.get("btn-settings").fire("click", {});
+    assert.equal(ui.get("screen-settings").hidden, false, "settings screen visible");
+    harness.expectTitle("Impostazioni");
+    assert.equal(ui.get("setting-vibration").checked, true, "vibration on by default");
+    ui.get("setting-vibration").checked = false;
+    ui.get("setting-vibration").fire("change", {});
+    ui.get("btn-back-settings").fire("click", {});
+    assert.equal(ui.get("screen-home").hidden, false, "back to home from settings");
+    ui.get("btn-settings").fire("click", {});
+    assert.equal(ui.get("setting-vibration").checked, false, "vibration setting persisted in session");
+    const confirmCalls = [];
+    harness.doc.defaultView.confirm = (m) => {
+        confirmCalls.push(m);
+        return true;
+    };
+    ui.get("btn-reset-progress").fire("click", {});
+    assert.equal(confirmCalls.length, 1, "reset asks for confirmation");
+    assert.equal(ui.get("home-level").textContent, "1", "level reset");
+    assert.equal(ui.get("home-currency").textContent, "0", "currency reset");
+    assert.equal(ui.get("stat-runs").textContent, "0", "stats reset");
+    assert.equal(ui.get("setting-vibration").checked, false, "settings survive progress reset");
+});
+test("smoke DOM: back dalla run abbandona e torna al menu", async () => {
+    const harness = makeDocument();
+    const { boot } = await import("../main.js");
+    boot(harness.doc);
+    harness.frame(0);
+    const ui = harness.els;
+    ui.get("btn-play").fire("click", {});
+    assert.equal(ui.get("screen-run").hidden, false);
+    pressKey(harness, KEY.up);
+    ui.get("btn-back-run").fire("click", {});
+    assert.equal(ui.get("screen-home").hidden, false, "back to home from run");
+    assert.equal(ui.get("screen-run").hidden, true, "run screen hidden after abandon");
 });

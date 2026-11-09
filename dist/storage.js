@@ -6,6 +6,7 @@ export function defaultPlayerState() {
         stats: { played: 0, won: 0, lost: 0 },
         currency: 0,
         skills: {},
+        settings: { vibration: true },
     };
 }
 export function loadPlayerState(storage = getLocalStorage()) {
@@ -23,6 +24,7 @@ export function loadPlayerState(storage = getLocalStorage()) {
             bestScores: { ...parsed.bestScores },
             stats: { ...fallback.stats, ...parsed.stats },
             skills: { ...parsed.skills },
+            settings: { ...fallback.settings, ...parsed.settings },
         };
     }
     catch {

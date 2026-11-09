@@ -6,6 +6,7 @@ export function queryUI(root = document) {
             run: requireEl(root, "screen-run"),
             result: requireEl(root, "screen-result"),
             skills: requireEl(root, "screen-skills"),
+            settings: requireEl(root, "screen-settings"),
         },
         homeLevel: requireEl(root, "home-level"),
         homeCurrency: requireEl(root, "home-currency"),
@@ -16,6 +17,7 @@ export function queryUI(root = document) {
         skillsCurrency: requireEl(root, "skills-currency"),
         btnBackSkills: requireEl(root, "btn-back-skills"),
         btnSkills: requireEl(root, "btn-skills"),
+        btnSettings: requireEl(root, "btn-settings"),
         hudTime: requireEl(root, "hud-time"),
         hudLevel: requireEl(root, "hud-level"),
         pauseOverlay: requireEl(root, "pause-overlay"),
@@ -31,6 +33,11 @@ export function queryUI(root = document) {
         btnPause: requireEl(root, "btn-pause"),
         btnRetry: requireEl(root, "btn-retry"),
         btnResultMenu: requireEl(root, "btn-result-menu"),
+        btnBackRun: requireEl(root, "btn-back-run"),
+        btnBackResult: requireEl(root, "btn-back-result"),
+        btnBackSettings: requireEl(root, "btn-back-settings"),
+        settingVibration: requireEl(root, "setting-vibration"),
+        btnResetProgress: requireEl(root, "btn-reset-progress"),
     };
 }
 function requireEl(root, id) {
@@ -42,6 +49,7 @@ function requireEl(root, id) {
 const SCREEN_TITLES = {
     home: "Menu",
     skills: "Skill",
+    settings: "Impostazioni",
     run: "Partita",
     result: "Risultato",
 };
@@ -58,6 +66,7 @@ export function showScreen(ui, id) {
 }
 export function renderHome(ui, player) {
     ui.homeLevel.textContent = String(player.level);
+    ui.settingVibration.checked = player.settings.vibration;
     ui.homeCurrency.textContent = String(player.currency);
     ui.statRuns.textContent = String(player.stats.played);
     ui.statWins.textContent = String(player.stats.won);
@@ -98,6 +107,9 @@ export function renderResult(ui, info) {
             ? `Prossimo livello: ${info.nextLevel}`
             : "Il labirinto resta visibile per la revisione del percorso.";
     ui.resultMaze.hidden = info.won;
+}
+export function renderSettings(ui, player) {
+    ui.settingVibration.checked = player.settings.vibration;
 }
 export function renderSkills(ui, player, onBuy, createElement = (tag) => document.createElement(tag)) {
     ui.skillsCurrency.textContent = `Monete: ${player.currency}`;

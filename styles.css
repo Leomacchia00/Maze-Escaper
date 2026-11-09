@@ -49,6 +49,10 @@ body {
   animation: fade-in 0.25s ease-out;
 }
 
+.screen[hidden] {
+  display: none;
+}
+
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
@@ -137,6 +141,143 @@ p {
 .result-title.win { color: var(--ok); }
 .result-title.loss { color: var(--danger); }
 
+/* ---------- Home (lobby) ---------- */
+
+.lobby-play {
+  font-size: 1.25rem;
+  padding: 16px 18px;
+}
+
+.lobby-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 12px;
+  background: linear-gradient(180deg, var(--panel), var(--bg-raised));
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-height: 48px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.tile-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.tile-name {
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.tile-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ---------- Header di pagina con back ---------- */
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.page-header h1 {
+  flex: 1;
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.back-btn {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 8px 14px;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* ---------- Impostazioni ---------- */
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.switch {
+  position: relative;
+  width: 52px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch .slider {
+  position: absolute;
+  inset: 0;
+  background: var(--panel-border);
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.switch .slider::before {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--text);
+  top: 4px;
+  left: 4px;
+  transition: transform 0.15s ease;
+}
+
+.switch input:checked + .slider {
+  background: var(--accent);
+}
+
+.switch input:checked + .slider::before {
+  transform: translateX(22px);
+}
+
+.switch input:focus-visible + .slider {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button.danger {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: var(--danger);
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+}
+
+.version {
+  text-align: center;
+}
+
 /* ---------- Card ---------- */
 
 .panel {
@@ -214,14 +355,7 @@ button:disabled {
   flex: 1;
 }
 
-.menu-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-/* ---------- Home ---------- */
+/* ---------- Run ---------- */
 
 .stats-grid {
   display: grid;

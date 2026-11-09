@@ -1,8 +1,8 @@
 import { createRun, tick, tryMove, pause, resume, computeScoreBreakdown, fogRadius, TOP, RIGHT, BOTTOM, LEFT } from "./game.js";
 import { drawRun } from "./render.js";
-import { loadPlayerState, savePlayerState, recordRunResult } from "./storage.js";
+import { loadPlayerState, savePlayerState, recordRunResult, defaultPlayerState } from "./storage.js";
 import { awardRunCoins, buySkill } from "./skills.js";
-import { queryUI, showScreen, renderHome, renderHud, renderSkills, setPauseOverlay, renderResult } from "./ui.js";
+import { queryUI, showScreen, renderHome, renderHud, renderSkills, renderSettings, setPauseOverlay, renderResult } from "./ui.js";
 const KEY_MAP = {
     ArrowUp: TOP, w: TOP, W: TOP,
     ArrowRight: RIGHT, d: RIGHT, D: RIGHT,
@@ -28,8 +28,20 @@ class App {
     bind() {
         this.ui.btnPlay.addEventListener("click", () => this.startRun(this.player.level));
         this.ui.btnSkills.addEventListener("click", () => this.showSkills());
+        this.ui.btnSettings.addEventListener("click", () => this.showSettings());
         this.ui.btnBackSkills.addEventListener("click", () => this.goHome());
+        this.ui.btnBackSettings.addEventListener("click", () => this.goHome());
+        this.ui.btnBackRun.addEventListener("click", () => this.abandonRun());
+        this.ui.btnBackResult.addEventListener("click", () => this.goHome());
         this.ui.btnPause.addEventListener("click", () => this.togglePause());
+        this.ui.settingVibration.addEventListener("change", () => {
+            this.player = {
+                ...this.player,
+                settings: { ...this.player.settings, vibration: this.ui.settingVibration.checked },
+            };
+            savePlayerState(this.player);
+        });
+        this.ui.btnResetProgress.addEventListener("click", () => this.resetProgress());
         this.ui.btnRetry.addEventListener("click", () => {
             if (this.run)
                 this.startRun(this.run.level);
@@ -37,7 +49,7 @@ class App {
         this.ui.btnResultMenu.addEventListener("click", () => this.goHome());
         this.document_.addEventListener("keydown", (e) => {
             if (e.key === "Escape") {
-                if (this.ui.screens.skills.hidden === false) {
+                if (this.ui.screens.skills.hidden === false || this.ui.screens.settings.hidden === false) {
                     this.goHome();
                 }
                 else {
@@ -80,6 +92,25 @@ class App {
         this.renderSkillsScreen();
         showScreen(this.ui, "skills");
     }
+    showSettings() {
+        renderSettings(this.ui, this.player);
+        showScreen(this.ui, "settings");
+    }
+    abandonRun() {
+        if (this.run && (this.run.status === "running" || this.run.status === "ready")) {
+            this.run = pause(this.run);
+        }
+        this.goHome();
+    }
+    resetProgress() {
+        if (!this.document_.defaultView?.confirm("Azzerare tutti i progressi? Livello, record e statistiche verranno cancellati.")) {
+            return;
+        }
+        this.player = { ...defaultPlayerState(), settings: this.player.settings };
+        savePlayerState(this.player);
+        renderHome(this.ui, this.player);
+        renderSettings(this.ui, this.player);
+    }
     renderSkillsScreen() {
         renderSkills(this.ui, this.player, (id) => {
             this.player = buySkill(this.player, id);
@@ -117,6 +148,8 @@ class App {
         }
     }
     vibrate(pattern) {
+        if (this.player.settings?.vibration === false)
+            return;
         try {
             if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
                 navigator.vibrate(pattern);
