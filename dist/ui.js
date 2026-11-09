@@ -36,6 +36,10 @@ export function queryUI(root = document) {
         btnBackRun: requireEl(root, "btn-back-run"),
         btnBackResult: requireEl(root, "btn-back-result"),
         btnBackSettings: requireEl(root, "btn-back-settings"),
+        btnResume: requireEl(root, "btn-resume"),
+        btnRestartRun: requireEl(root, "btn-restart-run"),
+        btnQuitRun: requireEl(root, "btn-quit-run"),
+        btnNextLevel: requireEl(root, "btn-next-level"),
         settingVibration: requireEl(root, "setting-vibration"),
         btnResetProgress: requireEl(root, "btn-reset-progress"),
     };
@@ -101,6 +105,8 @@ export function renderResult(ui, info) {
         ui.resultScoreValue.textContent = "—";
         ui.resultBreakdown.hidden = true;
     }
+    ui.btnNextLevel.hidden = !info.won;
+    ui.btnRetry.classList.toggle("primary", !info.won);
     ui.resultRecord.textContent = info.isRecord
         ? `★ Nuovo record per il livello ${info.level}!`
         : info.won

@@ -42,6 +42,10 @@ export interface UIElements {
   btnBackRun: HTMLButtonElement;
   btnBackResult: HTMLButtonElement;
   btnBackSettings: HTMLButtonElement;
+  btnResume: HTMLButtonElement;
+  btnRestartRun: HTMLButtonElement;
+  btnQuitRun: HTMLButtonElement;
+  btnNextLevel: HTMLButtonElement;
   settingVibration: HTMLInputElement;
   btnResetProgress: HTMLButtonElement;
 }
@@ -83,6 +87,10 @@ export function queryUI(root: Document = document): UIElements {
     btnBackRun: requireEl(root, "btn-back-run") as HTMLButtonElement,
     btnBackResult: requireEl(root, "btn-back-result") as HTMLButtonElement,
     btnBackSettings: requireEl(root, "btn-back-settings") as HTMLButtonElement,
+    btnResume: requireEl(root, "btn-resume") as HTMLButtonElement,
+    btnRestartRun: requireEl(root, "btn-restart-run") as HTMLButtonElement,
+    btnQuitRun: requireEl(root, "btn-quit-run") as HTMLButtonElement,
+    btnNextLevel: requireEl(root, "btn-next-level") as HTMLButtonElement,
     settingVibration: requireEl(root, "setting-vibration") as HTMLInputElement,
     btnResetProgress: requireEl(root, "btn-reset-progress") as HTMLButtonElement,
   };
@@ -156,6 +164,8 @@ export function renderResult(ui: UIElements, info: ResultInfo): void {
     ui.resultBreakdown.hidden = true;
   }
 
+  ui.btnNextLevel.hidden = !info.won;
+  ui.btnRetry.classList.toggle("primary", !info.won);
   ui.resultRecord.textContent = info.isRecord
     ? `★ Nuovo record per il livello ${info.level}!`
     : info.won

@@ -109,6 +109,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none;
+}
+
 html,
 body {
   margin: 0;
@@ -493,6 +497,10 @@ button:disabled {
   border-radius: var(--radius-md);
 }
 
+#result-maze[hidden] {
+  display: none;
+}
+
 #pause-overlay {
   position: absolute;
   inset: 0;
@@ -500,13 +508,28 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: var(--space-3);
   background: var(--color-bg-scrim);
   backdrop-filter: blur(2px);
   font-size: var(--text-title);
   line-height: var(--text-title-lh);
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+#pause-overlay[hidden] {
+  display: none;
+}
+
+.pause-title {
+  margin: 0;
+}
+
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(240px, 80%);
 }
 
 #pause-overlay .hint {

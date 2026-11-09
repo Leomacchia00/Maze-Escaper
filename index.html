@@ -94,7 +94,15 @@
       </header>
       <div id="canvas-wrap">
         <canvas id="maze-canvas" width="640" height="640" role="img" aria-label="Labirinto di gioco"></canvas>
-        <div id="pause-overlay" role="dialog" aria-modal="true" aria-label="Gioco in pausa" tabindex="-1" hidden><p>In pausa</p><p class="hint">Esc o &#9208; per riprendere</p></div>
+        <div id="pause-overlay" role="dialog" aria-modal="true" aria-label="Gioco in pausa" tabindex="-1" hidden>
+          <h2 class="pause-title">In pausa</h2>
+          <div class="pause-actions">
+            <button id="btn-resume" class="primary">Riprendi</button>
+            <button id="btn-restart-run">Ricomincia</button>
+            <button id="btn-quit-run">Menu</button>
+          </div>
+          <p class="hint">Esc per riprendere</p>
+        </div>
       </div>
       <p class="hint">Frecce/WASD &#183; swipe su mobile &#183; Esc per la pausa</p>
     </section>
@@ -116,6 +124,7 @@
       <p class="record-badge" id="result-record"></p>
       <canvas id="result-maze" width="360" height="360" role="img" aria-label="Labirinto della run conclusa"></canvas>
       <div class="actions">
+        <button id="btn-next-level" class="primary" hidden>Prossimo livello</button>
         <button id="btn-retry" class="primary">Riprova</button>
         <button id="btn-result-menu">Menu</button>
       </div>

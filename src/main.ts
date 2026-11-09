@@ -39,6 +39,12 @@ class App {
     this.ui.btnBackRun.addEventListener("click", () => this.abandonRun());
     this.ui.btnBackResult.addEventListener("click", () => this.goHome());
     this.ui.btnPause.addEventListener("click", () => this.togglePause());
+    this.ui.btnResume.addEventListener("click", () => this.resumeRun());
+    this.ui.btnRestartRun.addEventListener("click", () => {
+      if (this.run) this.startRun(this.run.level);
+    });
+    this.ui.btnQuitRun.addEventListener("click", () => this.abandonRun());
+    this.ui.btnNextLevel.addEventListener("click", () => this.startRun(this.player.level));
     this.ui.settingVibration.addEventListener("change", () => {
       this.player = {
         ...this.player,
@@ -174,17 +180,24 @@ class App {
   private togglePause(): void {
     if (!this.run) return;
     if (this.run.status === "paused") {
-      this.run = resume(this.run);
-      setPauseOverlay(this.ui, false);
-      this.pauseReturnFocus?.focus({ preventScroll: true });
-      this.pauseReturnFocus = null;
+      this.resumeRun();
     } else if (this.run.status === "running" || this.run.status === "ready") {
+      const active = this.document_.activeElement as { focus?: unknown } | null;
       this.pauseReturnFocus =
-        this.document_.activeElement instanceof HTMLElement ? this.document_.activeElement : null;
+        active && typeof active.focus === "function" ? (active as HTMLElement) : null;
       this.run = pause(this.run);
       setPauseOverlay(this.ui, true);
       this.ui.pauseOverlay.focus({ preventScroll: true });
+      this.renderCurrent();
     }
+  }
+
+  private resumeRun(): void {
+    if (!this.run || this.run.status !== "paused") return;
+    this.run = resume(this.run);
+    setPauseOverlay(this.ui, false);
+    this.pauseReturnFocus?.focus({ preventScroll: true });
+    this.pauseReturnFocus = null;
     this.renderCurrent();
   }
 

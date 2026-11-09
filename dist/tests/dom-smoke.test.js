@@ -78,6 +78,7 @@ function makeDocument() {
         "maze-canvas", "result-maze",
         "btn-play", "btn-skills", "btn-settings", "btn-back-skills", "btn-back-settings",
         "btn-back-run", "btn-back-result", "btn-pause", "btn-retry", "btn-result-menu",
+        "btn-resume", "btn-restart-run", "btn-quit-run", "btn-next-level",
         "setting-vibration", "btn-reset-progress",
         "canvas-wrap", "app",
     ];
@@ -226,4 +227,49 @@ test("smoke DOM: back dalla run abbandona e torna al menu", async () => {
     ui.get("btn-back-run").fire("click", {});
     assert.equal(ui.get("screen-home").hidden, false, "back to home from run");
     assert.equal(ui.get("screen-run").hidden, true, "run screen hidden after abandon");
+});
+test("smoke DOM: menu pausa con riprendi, ricomincia e menu", async () => {
+    const harness = makeDocument();
+    const { boot } = await import("../main.js");
+    boot(harness.doc);
+    harness.frame(0);
+    const ui = harness.els;
+    ui.get("btn-play").fire("click", {});
+    assert.equal(ui.get("pause-overlay").hidden, true, "overlay hidden at run start");
+    pressKey(harness, KEY.up);
+    ui.get("btn-pause").fire("click", {});
+    assert.equal(ui.get("pause-overlay").hidden, false, "pause menu shown");
+    ui.get("btn-restart-run").fire("click", {});
+    assert.equal(ui.get("screen-run").hidden, false, "restart stays on run screen");
+    assert.equal(ui.get("pause-overlay").hidden, true, "overlay closed after restart");
+    assert.equal(ui.get("hud-time").textContent, "27.5s", "timer reset to base time on restart");
+    pressKey(harness, KEY.up);
+    ui.get("btn-pause").fire("click", {});
+    ui.get("btn-resume").fire("click", {});
+    assert.equal(ui.get("pause-overlay").hidden, true, "resume closes pause menu");
+    const t0 = Number(ui.get("hud-time").textContent.replace("s", ""));
+    assert.ok(t0 > 0, "timer keeps running after resume");
+    ui.get("btn-pause").fire("click", {});
+    ui.get("btn-quit-run").fire("click", {});
+    assert.equal(ui.get("screen-home").hidden, false, "quit returns to menu");
+});
+test("smoke DOM: prossimo livello visibile solo alla vittoria e parte al livello successivo", async () => {
+    const harness = makeDocument();
+    const { boot } = await import("../main.js");
+    boot(harness.doc);
+    harness.frame(0);
+    const ui = harness.els;
+    ui.get("btn-play").fire("click", {});
+    for (const key of [KEY.up, KEY.right, KEY.down, KEY.left]) {
+        pressKey(harness, key);
+        if (ui.get("screen-result").hidden === false)
+            break;
+    }
+    const won = ui.get("result-title").textContent.includes("Vittoria");
+    assert.equal(ui.get("btn-next-level").hidden, won === false, "next-level only on win");
+    if (won) {
+        ui.get("btn-next-level").fire("click", {});
+        assert.equal(ui.get("screen-run").hidden, false, "next level starts a run");
+        assert.equal(ui.get("hud-level").textContent, "Livello 2", "next level is level 2");
+    }
 });
