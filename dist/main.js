@@ -1,4 +1,4 @@
-import { createRun, tick, movePlayer, pause, resume, computeScoreBreakdown, fogRadius } from "./game.js";
+import { createRun, tick, movePlayer, pickupChests, pause, resume, computeScoreBreakdown, fogRadius } from "./game.js";
 import { drawRun } from "./render.js";
 import { loadPlayerState, savePlayerState, recordRunResult, defaultPlayerState } from "./storage.js";
 import { awardRunCoins, buySkill } from "./skills.js";
@@ -188,6 +188,11 @@ class App {
             breakdown,
             isRecord: this.justSetRecord,
             nextLevel: won ? run.level + 1 : run.level,
+            loot: {
+                chestsOpened: run.chests.filter((c) => c.opened).length,
+                coins: won ? run.lootCoins : Math.floor(run.lootCoins / 2),
+                treasures: run.lootTreasures.length,
+            },
         });
         if (!won) {
             drawRun(this.ui.resultMaze, run, { revealAll: true, fogRadius: Infinity });
@@ -216,6 +221,7 @@ class App {
             const input = this.inputVector();
             const before = { px: this.run.px, py: this.run.py };
             this.run = movePlayer(this.run, input.ix, input.iy, dt);
+            this.run = pickupChests(this.run);
             if ((input.ix !== 0 || input.iy !== 0) && this.bumpCooldown <= 0) {
                 const moved = Math.hypot(this.run.px - before.px, this.run.py - before.py);
                 if (moved < 1e-6) {

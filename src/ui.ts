@@ -10,6 +10,7 @@ export interface ResultInfo {
   breakdown: ScoreBreakdown | null;
   isRecord: boolean;
   nextLevel: number;
+  loot?: { chestsOpened: number; coins: number; treasures: number };
 }
 
 export interface UIElements {
@@ -34,6 +35,10 @@ export interface UIElements {
   breakdownSize: HTMLElement;
   breakdownEfficiency: HTMLElement;
   resultRecord: HTMLElement;
+  resultLoot: HTMLElement;
+  resultLootChests: HTMLElement;
+  resultLootCoins: HTMLElement;
+  resultLootTreasures: HTMLElement;
   resultMaze: HTMLCanvasElement;
   btnPlay: HTMLButtonElement;
   btnPause: HTMLButtonElement;
@@ -79,6 +84,10 @@ export function queryUI(root: Document = document): UIElements {
     breakdownSize: requireEl(root, "breakdown-size"),
     breakdownEfficiency: requireEl(root, "breakdown-efficiency"),
     resultRecord: requireEl(root, "result-record"),
+    resultLoot: requireEl(root, "result-loot"),
+    resultLootChests: requireEl(root, "loot-chests"),
+    resultLootCoins: requireEl(root, "loot-coins"),
+    resultLootTreasures: requireEl(root, "loot-treasures"),
     resultMaze: requireEl(root, "result-maze") as HTMLCanvasElement,
     btnPlay: requireEl(root, "btn-play") as HTMLButtonElement,
     btnPause: requireEl(root, "btn-pause") as HTMLButtonElement,
@@ -162,6 +171,21 @@ export function renderResult(ui: UIElements, info: ResultInfo): void {
   } else {
     ui.resultScoreValue.textContent = "—";
     ui.resultBreakdown.hidden = true;
+  }
+
+  if (info.loot) {
+    ui.resultLootChests.textContent = String(info.loot.chestsOpened);
+    ui.resultLootCoins.textContent = `+${info.loot.coins}`;
+    ui.resultLootTreasures.textContent = String(info.loot.treasures);
+  }
+
+  if (info.loot) {
+    ui.resultLoot.hidden = false;
+    ui.resultLootChests.textContent = String(info.loot.chestsOpened);
+    ui.resultLootCoins.textContent = `+${info.loot.coins}`;
+    ui.resultLootTreasures.textContent = String(info.loot.treasures);
+  } else {
+    ui.resultLoot.hidden = true;
   }
 
   ui.btnNextLevel.hidden = !info.won;

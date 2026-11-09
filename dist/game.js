@@ -1,5 +1,6 @@
 import { generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT } from "./maze.js";
 import { extraTimeMultiplier, timerSpeedFactor, fogBonus, hasCompass } from "./skills.js";
+import { placeChests, openChestAt } from "./chests.js";
 export const VISIT_BONUS_SECONDS = 0.2;
 export function fogRadiusForLevel(level) {
     if (level >= 8)
@@ -18,6 +19,12 @@ export function createRun(level, rng = Math.random, skills = {}) {
     const visited = new Uint8Array(n * n);
     visited[maze.entrance] = 1;
     const baseTime = n * 2.5 * extraTimeMultiplier(skills);
+    const freeCells = [];
+    for (let i = 0; i < n * n; i++) {
+        if (i !== maze.entrance && i !== maze.exit)
+            freeCells.push(i);
+    }
+    const chests = placeChests(freeCells, maze.entrance, maze.exit, chestCountForCells(n * n), rng);
     return {
         level,
         maze,
@@ -30,12 +37,24 @@ export function createRun(level, rng = Math.random, skills = {}) {
         timeLeft: baseTime,
         status: "ready",
         moves: 0,
+        chests,
+        lootCoins: 0,
+        lootTreasures: [],
         timerFactor: timerSpeedFactor(skills),
         compass: hasCompass(skills),
         fogBonus: fogBonus(skills),
         facingX: 1,
         facingY: 0,
     };
+}
+export function chestCountForCells(cells) {
+    return Math.min(8, Math.max(3, Math.round(cells / 45)));
+}
+export function pickupChests(state) {
+    const result = openChestAt(state);
+    if (!result)
+        return state;
+    return { ...state, chests: result.chests, lootCoins: result.lootCoins, lootTreasures: result.lootTreasures };
 }
 export function tick(state, dtSeconds) {
     if (state.status !== "running")
@@ -92,6 +111,10 @@ export function movePlayer(state, ix, iy, dt) {
             const rB = Math.floor(next + r - EPS);
             let blocked = false;
             for (let cx = c0; cx <= c1 && !blocked; cx++) {
+                if (cx >= n) {
+                    blocked = true;
+                    break;
+                }
                 for (let b = rT + 1; b <= rB; b++) {
                     if (b >= n || maze.walls[b * n + cx] & TOP) {
                         blocked = true;

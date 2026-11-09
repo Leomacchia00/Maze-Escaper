@@ -75,6 +75,7 @@ function makeDocument() {
         "hud-time", "hud-level",
         "skills-list", "skills-currency",
         "pause-overlay", "result-title", "result-score-value", "result-breakdown",
+        "result-loot", "loot-chests", "loot-treasures", "loot-coins",
         "breakdown-time", "breakdown-size", "breakdown-efficiency", "result-record",
         "maze-canvas", "result-maze",
         "btn-play", "btn-skills", "btn-settings", "btn-back-skills", "btn-back-settings",

@@ -28,6 +28,10 @@ export function queryUI(root = document) {
         breakdownSize: requireEl(root, "breakdown-size"),
         breakdownEfficiency: requireEl(root, "breakdown-efficiency"),
         resultRecord: requireEl(root, "result-record"),
+        resultLoot: requireEl(root, "result-loot"),
+        resultLootChests: requireEl(root, "loot-chests"),
+        resultLootCoins: requireEl(root, "loot-coins"),
+        resultLootTreasures: requireEl(root, "loot-treasures"),
         resultMaze: requireEl(root, "result-maze"),
         btnPlay: requireEl(root, "btn-play"),
         btnPause: requireEl(root, "btn-pause"),
@@ -104,6 +108,20 @@ export function renderResult(ui, info) {
     else {
         ui.resultScoreValue.textContent = "—";
         ui.resultBreakdown.hidden = true;
+    }
+    if (info.loot) {
+        ui.resultLootChests.textContent = String(info.loot.chestsOpened);
+        ui.resultLootCoins.textContent = `+${info.loot.coins}`;
+        ui.resultLootTreasures.textContent = String(info.loot.treasures);
+    }
+    if (info.loot) {
+        ui.resultLoot.hidden = false;
+        ui.resultLootChests.textContent = String(info.loot.chestsOpened);
+        ui.resultLootCoins.textContent = `+${info.loot.coins}`;
+        ui.resultLootTreasures.textContent = String(info.loot.treasures);
+    }
+    else {
+        ui.resultLoot.hidden = true;
     }
     ui.btnNextLevel.hidden = !info.won;
     ui.btnRetry.classList.toggle("primary", !info.won);

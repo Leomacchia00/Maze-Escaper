@@ -445,6 +445,12 @@ button:disabled {
   border-color: var(--color-accent-border);
 }
 
+#hud-time::before {
+  content: "Aria ";
+  font-weight: 700;
+  opacity: 0.75;
+}
+
 .chip.time.low {
   color: var(--color-danger-text);
   border-color: var(--color-danger-border);

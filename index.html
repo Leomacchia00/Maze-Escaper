@@ -92,7 +92,7 @@
       <header class="run-header">
         <button id="btn-back-run" class="back-btn" aria-label="Abbandona e torna al menu">&#8592;</button>
         <span class="chip" id="hud-level">Livello 1</span>
-        <span class="chip time" id="hud-time">0.0s</span>
+        <span class="chip time" id="hud-time" aria-label="Aria rimanente nella maschera">0.0s</span>
         <button id="btn-pause" aria-label="Pausa">&#9208;</button>
       </header>
       <div id="time-bar" aria-hidden="true"><div id="time-bar-fill"></div></div>
@@ -126,6 +126,11 @@
         <div class="row"><span>Bonus efficienza</span><span id="breakdown-efficiency">+0</span></div>
       </div>
       <p class="record-badge" id="result-record"></p>
+      <div class="panel breakdown" id="result-loot" hidden>
+        <div class="row"><span>Casse aperte</span><span id="loot-chests">0</span></div>
+        <div class="row"><span>Tesori trovati</span><span id="loot-treasures">0</span></div>
+        <div class="row"><span>Monete recuperate</span><span id="loot-coins">+0</span></div>
+      </div>
       <canvas id="result-maze" width="360" height="360" role="img" aria-label="Labirinto della run conclusa"></canvas>
       <div class="actions">
         <button id="btn-next-level" class="primary" hidden>Prossimo livello</button>
