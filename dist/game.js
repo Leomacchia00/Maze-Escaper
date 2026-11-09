@@ -1,4 +1,4 @@
-import { generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT, canMove, neighborIndex } from "./maze.js";
+import { generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT } from "./maze.js";
 import { extraTimeMultiplier, timerSpeedFactor, fogBonus, hasCompass } from "./skills.js";
 export const VISIT_BONUS_SECONDS = 0.2;
 export function fogRadiusForLevel(level) {
@@ -43,32 +43,6 @@ export function tick(state, dtSeconds) {
         return { ...state, timeLeft: 0, status: "lost" };
     }
     return { ...state, timeLeft };
-}
-export function tryMove(state, dir) {
-    if (state.status !== "ready" && state.status !== "running")
-        return state;
-    if (!canMove(state.maze, state.player, dir))
-        return state;
-    const next = neighborIndex(state.maze.n, state.player, dir);
-    let timeLeft = state.timeLeft;
-    let visitedCount = state.visitedCount;
-    let visited = state.visited;
-    if (!visited[next]) {
-        visited = visited.slice();
-        visited[next] = 1;
-        visitedCount += 1;
-        timeLeft += VISIT_BONUS_SECONDS;
-    }
-    const status = next === state.maze.exit ? "won" : "running";
-    return {
-        ...state,
-        player: next,
-        visited,
-        visitedCount,
-        timeLeft,
-        status,
-        moves: state.moves + 1,
-    };
 }
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;

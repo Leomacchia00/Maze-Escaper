@@ -1,20 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeScore, createRun, tick, tryMove, movePlayer, PLAYER_RADIUS, pause, resume, fogRadiusForLevel, RunState, Direction, TOP, RIGHT, BOTTOM, LEFT } from "../game.js";
+import { computeScore, createRun, tick, movePlayer, PLAYER_RADIUS, pause, resume, fogRadiusForLevel, RunState, TOP, RIGHT, BOTTOM, LEFT } from "../game.js";
 import { Maze, generateMaze, bfs, canMove, neighborIndex } from "../maze.js";
 
-function openDirFrom(maze: Maze, i: number): Direction {
-  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as Direction[]) {
+function openDirFrom(maze: Maze, i: number): number {
+  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as const) {
     if (canMove(maze, i, d)) return d;
   }
   throw new Error("no open direction (impossible in a perfect maze)");
 }
 
-function dirToward(maze: Maze, from: number, to: number): Direction {
-  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as Direction[]) {
-    if (canMove(maze, from, d) && neighborIndex(maze.n, from, d) === to) return d;
-  }
-  throw new Error("cells are not adjacent");
+function vecFor(dir: number): { ix: number; iy: number } {
+  return {
+    ix: dir === RIGHT ? 1 : dir === LEFT ? -1 : 0,
+    iy: dir === BOTTOM ? 1 : dir === TOP ? -1 : 0,
+  };
 }
 
 test("il punteggio corrisponde alla formula: tempo*10 + N*N + bonus efficienza", () => {
@@ -39,7 +39,8 @@ test("il timer parte al primo movimento, non al caricamento", () => {
   assert.equal(run.status, "ready");
   const afterIdle = tick(run, 5);
   assert.equal(afterIdle.timeLeft, run.baseTime);
-  const moved = tryMove(run, openDirFrom(run.maze, run.maze.entrance));
+  const v = vecFor(openDirFrom(run.maze, run.maze.entrance));
+  const moved = movePlayer(run, v.ix, v.iy, 1 / 60);
   assert.equal(moved.status, "running");
   const afterTick = tick(moved, 1);
   assert.ok(Math.abs(afterTick.timeLeft - (moved.timeLeft - 1)) < 1e-9);
@@ -49,7 +50,11 @@ test("prima visita di una cella aggiunge +0.2s", () => {
   const run = createRun(1, () => 0.5);
   const before = run.timeLeft;
   const beforeCount = run.visitedCount;
-  const moved = tryMove(run, openDirFrom(run.maze, run.maze.entrance));
+  const v = vecFor(openDirFrom(run.maze, run.maze.entrance));
+  let moved = run;
+  for (let f = 0; f < 30 && moved.player === run.maze.entrance; f++) {
+    moved = movePlayer(moved, v.ix, v.iy, 1 / 60);
+  }
   assert.equal(moved.visitedCount, beforeCount + 1);
   assert.ok(Math.abs(moved.timeLeft - (before + 0.2)) < 1e-9);
 });
@@ -63,11 +68,22 @@ test("tempo scaduto = sconfitta, uscita raggiunta = vittoria", () => {
   const w = createRun(1, () => 0.5);
   const exit = w.maze.exit;
   let wonRun: RunState | null = null;
-  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as Direction[]) {
+  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as const) {
     if (!canMove(w.maze, exit, d)) continue;
     const neighbor = neighborIndex(w.maze.n, exit, d);
-    const beforeExit: RunState = { ...w, player: neighbor, status: "running" };
-    wonRun = tryMove(beforeExit, dirToward(w.maze, neighbor, exit));
+    const beforeExit: RunState = {
+      ...w,
+      player: neighbor,
+      px: (neighbor % w.maze.n) + 0.5,
+      py: Math.floor(neighbor / w.maze.n) + 0.5,
+      status: "running",
+    };
+    const v = vecFor(d);
+    let s = beforeExit;
+    for (let f = 0; f < 60 && s.status === "running"; f++) {
+      s = movePlayer(s, -v.ix, -v.iy, 1 / 60);
+    }
+    wonRun = s;
     break;
   }
   assert.ok(wonRun, "exit has an open neighbor (impossible in a perfect maze)");
@@ -85,7 +101,11 @@ test("fog of war: raggio 3 dal livello 4, raggio 2 dal livello 8, pieno prima", 
 
 test("pausa: il labirinto non avanza e si riprende dallo stato giusto", () => {
   const run = createRun(1, () => 0.5);
-  const moved = tryMove(run, openDirFrom(run.maze, run.maze.entrance));
+  const v = vecFor(openDirFrom(run.maze, run.maze.entrance));
+  let moved = run;
+  for (let f = 0; f < 30 && moved.moves === 0; f++) {
+    moved = movePlayer(moved, v.ix, v.iy, 1 / 60);
+  }
   const paused = pause(moved);
   assert.equal(paused.status, "paused");
   assert.equal(tick(paused, 10).timeLeft, paused.timeLeft);
@@ -95,9 +115,21 @@ test("pausa: il labirinto non avanza e si riprende dallo stato giusto", () => {
 
 test("muro blocca il movimento", () => {
   const run = createRun(1, () => 0.5);
-  const left = tryMove(run, LEFT);
-  assert.equal(left.player, run.maze.entrance);
-  assert.equal(left.moves, 0);
+  let blockedDir = -1;
+  for (const d of [TOP, RIGHT, BOTTOM, LEFT] as const) {
+    if (!canMove(run.maze, run.maze.entrance, d)) {
+      blockedDir = d;
+      break;
+    }
+  }
+  assert.ok(blockedDir !== -1, "the entrance has at least one border wall");
+  const v = vecFor(blockedDir);
+  let s = run;
+  for (let i = 0; i < 120; i++) {
+    s = movePlayer(s, v.ix, v.iy, 1 / 60);
+  }
+  assert.equal(s.player, run.maze.entrance);
+  assert.equal(s.moves, 0);
 });
 
 test("movimento libero: la posizione è continua e il timer parte al primo input", () => {
@@ -138,7 +170,7 @@ test("movimento libero: seguire il percorso fino all'uscita vince la run", () =>
   const path: number[] = [];
   let cur = maze.exit;
   while (cur !== maze.entrance) {
-    for (const d of [TOP, RIGHT, BOTTOM, LEFT] as Direction[]) {
+    for (const d of [TOP, RIGHT, BOTTOM, LEFT] as const) {
       if (!canMove(maze, cur, d)) continue;
       const next = neighborIndex(n, cur, d);
       if (dist[next] === dist[cur] - 1) {
