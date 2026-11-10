@@ -154,28 +154,36 @@ function drawChest(
   }
 }
 
+let lastPx = -1;
+let lastPy = -1;
+let walkT = 0;
+
 function drawPlayer(
   ctx: CanvasRenderingContext2D, g: Cam, state: RunState
 ): void {
   const cx = g.ox + state.px * g.tw;
   const cy = g.oy + state.py * g.tw;
-  const bob = Math.sin(Date.now() / 140) * g.tw * 0.03;
   const r = g.tw * 0.26;
+  const moved = Math.abs(state.px - lastPx) > 1e-6 || Math.abs(state.py - lastPy) > 1e-6;
+  if (moved) walkT += 0.2;
+  lastPx = state.px;
+  lastPy = state.py;
+  const frame = moved ? Math.floor(walkT) % 2 : 0;
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   ctx.beginPath();
   ctx.ellipse(cx, cy, r * 0.75, r * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
   if (playerSheet.complete && playerSheet.naturalWidth > 0) {
-    const dir = state.facingY < 0 ? 3 : 0;
+    const col = state.facingX < 0 ? 1 : state.facingX > 0 ? 2 : state.facingY < 0 ? 3 : 0;
     const w = g.tw * 0.95;
-    const h = (w * playerSheet.naturalHeight) / (playerSheet.naturalWidth / 4) / 2;
     ctx.drawImage(
       playerSheet,
-      dir * 48, Math.floor(Date.now() / 160) % 2 * 48, 48, 48,
-      cx - w / 2, cy - h * 0.72, w, h
+      col * 48, frame * 48, 48, 48,
+      cx - w / 2, cy - w * 0.9, w, w
     );
     return;
   }
+  const bob = Math.sin(Date.now() / 140) * g.tw * 0.03;
   ctx.fillStyle = "#38bdf8";
   ctx.beginPath();
   ctx.ellipse(cx, cy - r * 1.05 + bob, r, r * 1.1, 0, 0, Math.PI * 2);
@@ -263,6 +271,7 @@ export function drawRun(
   const range: CellRange = visibleRange(g, canvas.width, canvas.height);
 
   ctx.save();
+  ctx.imageSmoothingEnabled = false;
   if (fx.shake > 0) {
     const m = fx.shake * fx.shake * 10;
     ctx.translate((Math.random() * 2 - 1) * m, (Math.random() * 2 - 1) * m);

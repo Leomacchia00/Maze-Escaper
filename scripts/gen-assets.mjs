@@ -226,7 +226,6 @@ writeFileSync(join(root, "assets", "tiles.png"), encodePNG(atlas));
 function playerFrame(dir, frame) {
   const img = new Img(T, T);
   const bob = frame === 1 ? 1 : 0;
-  img.ellipse(24, 43, 9, 3, [0, 0, 0, 60]);
   img.ellipse(20, footY(frame), 3.5, 2.5, [12, 74, 110, 255]);
   img.ellipse(28, footY(frame) + (frame === 1 ? -1 : 1), 3.5, 2.5, [12, 74, 110, 255]);
   img.ellipse(24, 28 - bob, 11, 12 - bob, [56, 189, 248, 255]);
