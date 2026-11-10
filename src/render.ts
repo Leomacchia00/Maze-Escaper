@@ -1,5 +1,5 @@
 import { Dungeon } from "./dungeon.js";
-import { Cam, cameraFor, seenMask, visibleRange, CellRange } from "./camera.js";
+import { Cam, cameraFor, seenMask, visibleRange, CellRange, darknessForLevel } from "./camera.js";
 import { RunState } from "./game.js";
 import { Enemy } from "./enemies.js";
 
@@ -358,6 +358,55 @@ function drawTorches(
   }
 }
 
+let darkCanvas: HTMLCanvasElement | null = null;
+
+function applyDarkness(
+  ctx: CanvasRenderingContext2D,
+  g: Cam,
+  d: Dungeon,
+  state: RunState,
+  dark: number,
+  range: CellRange
+): void {
+  const w = ctx.canvas.width;
+  const h = ctx.canvas.height;
+  if (!darkCanvas) darkCanvas = document.createElement("canvas");
+  if (darkCanvas.width !== w || darkCanvas.height !== h) {
+    darkCanvas.width = w;
+    darkCanvas.height = h;
+  }
+  const octx = darkCanvas.getContext("2d");
+  if (!octx) return;
+  octx.setTransform(1, 0, 0, 1, 0, 0);
+  octx.clearRect(0, 0, w, h);
+  octx.fillStyle = `rgba(10, 12, 28, ${dark})`;
+  octx.fillRect(0, 0, w, h);
+  octx.globalCompositeOperation = "destination-out";
+  const cut = (wx: number, wy: number, rCells: number, strength: number): void => {
+    const cx = g.ox + wx * g.tw;
+    const cy = g.oy + wy * g.tw;
+    const r = rCells * g.tw;
+    const grad = octx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grad.addColorStop(0, `rgba(0,0,0,${Math.min(1, strength)})`);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    octx.fillStyle = grad;
+    octx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  };
+  cut(state.px, state.py, 3.4, 1);
+  const pulse = 0.9 + 0.1 * Math.sin(Date.now() / 300);
+  cut(d.exit.x + 0.5, d.exit.y + 0.5, 1.8 * pulse, 0.9);
+  for (let y = range.y0; y <= range.y1; y++) {
+    for (let x = range.x0; x <= range.x1; x++) {
+      if (d.solid[y * d.size + x] !== 1) continue;
+      if (hash2(x, y, 777) > 0.25) continue;
+      const flicker = 0.8 + 0.2 * Math.sin(Date.now() / 120 + x * 2.7 + y * 1.3);
+      cut(x + 0.5, y + 0.5, 2.4 * flicker, 0.95);
+    }
+  }
+  octx.globalCompositeOperation = "source-over";
+  ctx.drawImage(darkCanvas, 0, 0);
+}
+
 export function drawRun(
   canvas: HTMLCanvasElement,
   state: RunState,
@@ -402,6 +451,8 @@ export function drawRun(
   drawEnemies(ctx, g, state.enemies, range);
   drawPlayer(ctx, g, state);
   drawTorches(ctx, g, d, range);
+
+  applyDarkness(ctx, g, d, state, darknessForLevel(state.level), range);
 
   drawPopups(ctx, g, fx);
   ctx.restore();
