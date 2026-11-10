@@ -1,3 +1,4 @@
+import { cameraFor, seenMask, visibleRange } from "./camera.js";
 export const BIOMES = [
     {
         name: "Prato Incantato",
@@ -30,19 +31,6 @@ export const BIOMES = [
 export function biomeForLevel(level) {
     const tier = Math.min(BIOMES.length - 1, Math.floor((level - 1) / 5));
     return BIOMES[tier];
-}
-function geoFor(width, height, size) {
-    const tw = (Math.min(width, height) / size) * 0.96;
-    const frontH = tw * 0.42;
-    const rise = tw * 0.3;
-    return {
-        size,
-        tw,
-        frontH,
-        rise,
-        ox: (width - size * tw) / 2,
-        oy: (height - size * tw) / 2 + rise,
-    };
 }
 function shade(hex, f) {
     const v = parseInt(hex.slice(1), 16);
@@ -109,41 +97,6 @@ function decorateFloor(ctx, g, b, x, y) {
         ctx.lineTo(sx + g.tw * 0.55, sy + g.tw * 0.5);
         ctx.stroke();
     }
-}
-const staticCache = new WeakMap();
-function getStaticLayer(d, b, width, height) {
-    const cached = staticCache.get(d);
-    if (cached && cached.width === width && cached.height === height)
-        return cached;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    const rows = Array.from({ length: d.size }, () => []);
-    if (ctx) {
-        const g = geoFor(width, height, d.size);
-        const grad = ctx.createLinearGradient(0, 0, 0, height);
-        grad.addColorStop(0, "#fdf8ec");
-        grad.addColorStop(1, b.fog);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
-        for (let y = 0; y < d.size; y++) {
-            for (let x = 0; x < d.size; x++) {
-                const sx = g.ox + x * g.tw;
-                const sy = g.oy + y * g.tw;
-                if (d.solid[y * d.size + x] === 1) {
-                    rows[y].push(x);
-                }
-                else {
-                    ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
-                    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
-                    decorateFloor(ctx, g, b, x, y);
-                }
-            }
-        }
-    }
-    staticCache.set(d, { canvas, width, height, rows });
-    return { canvas, rows };
 }
 function drawWall(ctx, g, b, x, y) {
     const sx = g.ox + x * g.tw;
@@ -259,30 +212,101 @@ function drawPopups(ctx, g, fx) {
         ctx.restore();
     }
 }
+function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+function drawMiniMap(ctx, state, seen, b, width) {
+    const mapSize = Math.min(150, width * 0.28);
+    const pad = 12;
+    const mx = width - mapSize - pad;
+    const my = pad;
+    const s = mapSize / state.dungeon.size;
+    const n = state.dungeon.size;
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    roundRectPath(ctx, mx, my, mapSize, mapSize, 10);
+    ctx.fillStyle = "#fdfdf7";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(53,64,42,0.25)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = b.wallTop;
+    for (let y = 0; y < n; y++) {
+        for (let x = 0; x < n; x++) {
+            const i = y * n + x;
+            if (state.visited[i] === 1 && state.dungeon.solid[i] === 0) {
+                ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
+            }
+        }
+    }
+    const ex = state.dungeon.exit.x;
+    const ey = state.dungeon.exit.y;
+    if (seen[ey * n + ex] === 1) {
+        ctx.fillStyle = b.accent;
+        ctx.beginPath();
+        ctx.arc(mx + (ex + 0.5) * s, my + (ey + 0.5) * s, Math.max(2.5, s * 0.7), 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.fillStyle = "#35402a";
+    ctx.beginPath();
+    ctx.arc(mx + state.px * s, my + state.py * s, Math.max(2.5, s * 0.6), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
 export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
     const ctx = canvas.getContext("2d");
     if (!ctx)
         return;
     const b = biomeForLevel(state.level);
-    const g = geoFor(canvas.width, canvas.height, state.dungeon.size);
-    const { canvas: layer, rows } = getStaticLayer(state.dungeon, b, canvas.width, canvas.height);
+    const d = state.dungeon;
+    const n = d.size;
+    const g = cameraFor(state.px, state.py, n, canvas.width, canvas.height);
+    const seen = seenMask(state.visited, n);
+    const range = visibleRange(g, canvas.width, canvas.height);
+    const isSeen = (x, y) => seen[y * n + x] === 1;
     ctx.save();
     if (fx.shake > 0) {
         const m = fx.shake * fx.shake * 10;
         ctx.translate((Math.random() * 2 - 1) * m, (Math.random() * 2 - 1) * m);
     }
-    ctx.drawImage(layer, 0, 0);
-    drawExit(ctx, g, state.dungeon, b);
-    const chests = state.chests.filter((c) => !c.opened);
+    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grad.addColorStop(0, "#fdf8ec");
+    grad.addColorStop(1, b.fog);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for (let y = range.y0; y <= range.y1; y++) {
+        for (let x = range.x0; x <= range.x1; x++) {
+            if (d.solid[y * n + x] === 1)
+                continue;
+            ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
+            const sx = g.ox + x * g.tw;
+            const sy = g.oy + y * g.tw;
+            ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
+            if (isSeen(x, y))
+                decorateFloor(ctx, g, b, x, y);
+        }
+    }
+    if (isSeen(d.exit.x, d.exit.y))
+        drawExit(ctx, g, d, b);
+    const chests = state.chests.filter((c) => !c.opened && isSeen(c.x, c.y));
     const ents = [
         ...chests.map((c) => ({ y: c.y, draw: () => drawChest(ctx, g, c.x, c.y, c.kind) })),
         { y: state.py, draw: () => drawPlayer(ctx, g, state) },
     ];
     ents.sort((a, c) => a.y - c.y);
     let ei = 0;
-    for (let y = 0; y < g.size; y++) {
-        for (const x of rows[y])
-            drawWall(ctx, g, b, x, y);
+    for (let y = range.y0; y <= range.y1 + 1; y++) {
+        for (let x = range.x0; x <= range.x1; x++) {
+            if (d.solid[y * n + x] === 1)
+                drawWall(ctx, g, b, x, y);
+        }
         while (ei < ents.length && Math.floor(ents[ei].y) === y) {
             ents[ei].draw();
             ei++;
@@ -292,6 +316,19 @@ export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
         ents[ei].draw();
         ei++;
     }
+    ctx.fillStyle = b.fog;
+    for (let y = range.y0; y <= range.y1 + 1; y++) {
+        for (let x = range.x0; x <= range.x1; x++) {
+            if (x < 0 || y < 0 || x >= n || y >= n)
+                continue;
+            if (seen[y * n + x] === 1)
+                continue;
+            const sx = g.ox + x * g.tw;
+            const sy = g.oy + y * g.tw;
+            ctx.fillRect(sx, sy - g.rise - 1, g.tw + 0.5, g.tw + g.rise + 2);
+        }
+    }
     drawPopups(ctx, g, fx);
     ctx.restore();
+    drawMiniMap(ctx, state, seen, b, canvas.width);
 }

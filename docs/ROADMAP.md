@@ -52,7 +52,7 @@ e qualunque nemico sarebbe banale da evitare. La camera precede quindi i nemici.
 Ogni fase è indipendente, shippabile (push + Pages) e con test verdi prima del push.
 Ordine = valore per il giocatore e dipendenze tecniche.
 
-### Fase 5 — Camera, fog of war e mini-mappa *(fondamentale, prima dei nemici)*
+### ✅ Fase 5 — Camera, fog of war e mini-mappa *(fatta: camera con clamp, fog di nebbia bioma, mini-mappa con uscita nascosta finché non scoperta; vedi `src/camera.ts` + test)*
 **Perché**: l'esplorazione è il cuore richiesto ("dungeon maze, non solo stanze"); oggi si vede tutto.
 **Cosa**:
 - Camera centrata sul giocatore con clamp ai bordi; zoom a tile visibili ~48-64px (mobile) / ~40 (desktop).
