@@ -58,6 +58,6 @@ Il canvas usa le stesse famiglie di colore tramite le palette `BIOMES` in
 
 - `manifest.webmanifest` con `start_url: ./` (compatibile con GitHub Pages
   in sottocartella), icone 192/512 generate da `scripts/gen-icons.mjs`.
-- Service worker cache-first (`sw.js`) con versione cache `maze-escaper-v1`.
+- Service worker (`sw.js`): network-first per HTML/JS/CSS (aggiornamenti subito visibili, fallback cache offline), cache-first per sprite/icone. La cache (`maze-escaper-v3`) va incrementata solo quando cambia la lista PRECACHE.
 EOF
 echo OK
