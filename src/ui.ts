@@ -6,6 +6,7 @@ export interface UIRefs {
   hudAir: HTMLElement;
   hudAirFill: HTMLElement;
   hudCoins: HTMLElement;
+  hudHp: HTMLElement;
   hudBiome: HTMLElement;
   btnPause: HTMLElement;
   pauseOverlay: HTMLElement;
@@ -41,6 +42,7 @@ export function queryUI(doc: Document): UIRefs {
     hudAir: q("hud-air"),
     hudAirFill: q("hud-air-fill"),
     hudCoins: q("hud-coins"),
+    hudHp: q("hud-hp"),
     hudBiome: q("hud-biome"),
     btnPause: q("btn-pause"),
     pauseOverlay: q("pause-overlay"),

@@ -1,4 +1,4 @@
-import { RunState, createRun, movePlayer, tick, pickupChests, payout } from "./game.js";
+import { RunState, createRun, movePlayer, tick, pickupChests, payout, damagePlayer } from "./game.js";
 import { pickupAt } from "./pickups.js";
 import { moveEnemies, ENEMY_BOUNTY } from "./enemies.js";
 import type { Enemy } from "./enemies.js";
@@ -65,7 +65,7 @@ class App {
   private lastTs: number | null = null;
   private ended = false;
   private paused = false;
-  private lastHud = { air: -1, coins: -1 };
+  private lastHud = { air: -1, coins: -1, hp: -1 };
   private attackCd = 0;
   private hurtCooldown = 0;
 
@@ -237,7 +237,7 @@ class App {
     this.ended = false;
     this.paused = false;
     this.ui.pauseOverlay.hidden = true;
-    this.lastHud = { air: -1, coins: -1 };
+    this.lastHud = { air: -1, coins: -1, hp: -1 };
     this.lastTs = null;
     this.ui.screens.home.hidden = true;
     this.ui.screens.result.hidden = true;
@@ -290,9 +290,10 @@ class App {
       const iy = ky !== 0 ? ky : this.joyVec.y;
       const before = this.run.chestOpenCount;
       const coinsBefore = this.run.coins;
+      const hpBefore = this.run.hp;
       this.run = movePlayer(this.run, ix, iy, dt);
       this.run = tick(this.run, dt);
-      this.run.enemies = moveEnemies(this.run.enemies, this.run.dungeon, dt);
+      this.run.enemies = moveEnemies(this.run.enemies, this.run.dungeon, dt, this.run.px, this.run.py);
       this.run = pickupChests(this.run);
       this.collectPickups();
       this.checkEnemyCollisions(dt);
@@ -388,7 +389,7 @@ class App {
     }
     for (const e of this.run.enemies) {
       if (Math.hypot(e.x - this.run.px, e.y - this.run.py) < 0.6) {
-        this.run.air = Math.max(1, this.run.air - 6);
+        this.run = damagePlayer(this.run, 1);
         this.fx.shake = 1;
         playHurt();
         this.hurtCooldown = 1.2;
@@ -412,6 +413,10 @@ class App {
     if (this.run.coins !== this.lastHud.coins) {
       this.lastHud.coins = this.run.coins;
       this.ui.hudCoins.textContent = String(this.run.coins);
+    }
+    if (this.run.hp !== this.lastHud.hp) {
+      this.lastHud.hp = this.run.hp;
+      this.ui.hudHp.textContent = "\u2764\ufe0f".repeat(this.run.hp) + "\u26a1".repeat(this.run.maxHp - this.run.hp);
     }
   }
 }

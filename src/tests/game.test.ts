@@ -7,6 +7,8 @@ import {
   pickupChests,
   payout,
   baseAirForLevel,
+  damagePlayer,
+  healPlayer,
 } from "../game.js";
 import { isSolid } from "../dungeon.js";
 
@@ -149,4 +151,39 @@ test("payout: alla vittoria il bottino è intero", () => {
   assert.equal(got.coins, 21);
   assert.equal(got.treasures.length, 1);
   assert.equal(got.donations.length, 1);
+});
+
+test("damagePlayer: hp scende e a 0 perde con lostBy hp", () => {
+  const s = createRun(LEVEL, SEED);
+  assert.equal(s.hp, s.maxHp);
+  const running = { ...s, status: "running" as const };
+  const hurt = damagePlayer(running, 1);
+  assert.equal(hurt.hp, s.maxHp - 1);
+  const dead = damagePlayer(hurt, 99);
+  assert.equal(dead.status, "lost");
+  assert.equal(dead.lostBy, "hp");
+  assert.equal(dead.hp, 0);
+});
+
+test("damagePlayer: non cambia stato se la run non e' in corso", () => {
+  const s = createRun(LEVEL, SEED);
+  const after = damagePlayer(s, 1);
+  assert.equal(after.hp, s.maxHp);
+});
+
+test("healPlayer: cura senza superare maxHp", () => {
+  const s = createRun(LEVEL, SEED);
+  const running = { ...s, status: "running" as const };
+  const hurt = damagePlayer(running, 2);
+  assert.equal(hurt.hp, 1);
+  const healed = healPlayer(hurt, 5);
+  assert.equal(healed.hp, healed.maxHp);
+});
+
+test("tick: quando finisce l'aria perde con lostBy air", () => {
+  const s = createRun(LEVEL, SEED);
+  const running = { ...s, status: "running" as const };
+  const lost = tick(running, running.air + 1);
+  assert.equal(lost.status, "lost");
+  assert.equal(lost.lostBy, "air");
 });

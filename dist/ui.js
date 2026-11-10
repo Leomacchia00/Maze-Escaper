@@ -18,6 +18,7 @@ export function queryUI(doc) {
         hudAir: q("hud-air"),
         hudAirFill: q("hud-air-fill"),
         hudCoins: q("hud-coins"),
+        hudHp: q("hud-hp"),
         hudBiome: q("hud-biome"),
         btnPause: q("btn-pause"),
         pauseOverlay: q("pause-overlay"),

@@ -290,6 +290,7 @@ const ENEMY_COLORS: Record<string, string> = {
   slug: "#8bc34a",
   bat: "#7c5cbf",
   wisp: "#67e8f9",
+  brute: "#e0604a",
 };
 
 function drawEnemies(
@@ -304,7 +305,7 @@ function drawEnemies(
     const cx = g.ox + e.x * g.tw;
     const cy = g.oy + e.y * g.tw;
     const wob = Math.sin(t / 200 + e.x * 5) * g.tw * 0.04;
-    const r = g.tw * (e.kind === "slug" ? 0.3 : 0.24);
+    const r = g.tw * (e.kind === "brute" ? 0.36 : e.kind === "slug" ? 0.3 : 0.24);
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath();
     ctx.ellipse(cx, cy + r * 0.9, r * 0.8, r * 0.3, 0, 0, Math.PI * 2);

@@ -4,24 +4,39 @@ export const ENEMY_HP = {
     slug: 3,
     bat: 1,
     wisp: 2,
+    brute: 6,
 };
 export const ENEMY_BOUNTY = {
     slug: 3,
     bat: 2,
     wisp: 4,
+    brute: 6,
+};
+export const ENEMY_TRAITS = {
+    slug: { speed: 1.0, chaseRange: 0 },
+    bat: { speed: 2.2, chaseRange: 5 },
+    wisp: { speed: 1.5, chaseRange: 6 },
+    brute: { speed: 0.8, chaseRange: 3 },
 };
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 export function enemyCountForLevel(level) {
-    return Math.min(10, 2 + Math.floor(level / 2));
+    return Math.min(12, 2 + Math.floor(level / 2));
 }
 function kindForLevel(level, rng) {
     if (level <= 5)
         return rng() < 0.7 ? "slug" : "bat";
-    if (level <= 10)
-        return rng() < 0.5 ? "bat" : "slug";
-    return rng() < 0.5 ? "wisp" : "bat";
+    if (level <= 10) {
+        const r = rng();
+        if (r < 0.15)
+            return "brute";
+        return r < 0.55 ? "bat" : "slug";
+    }
+    const r = rng();
+    if (r < 0.2)
+        return "brute";
+    return r < 0.55 ? "wisp" : "bat";
 }
-export function spawnEnemies(d, entrance, count, rng) {
+export function spawnEnemies(d, entrance, count, rng, level = 1) {
     const free = [];
     for (let y = 1; y < d.size - 1; y++) {
         for (let x = 1; x < d.size - 1; x++) {
@@ -36,17 +51,18 @@ export function spawnEnemies(d, entrance, count, rng) {
     for (let i = 0; i < Math.min(count, free.length); i++) {
         const [cx, cy] = free[i];
         const dir = pick(rng, DIRS);
-        const kind = kindForLevel(Math.floor(rng() * 1000), rng);
+        const kind = kindForLevel(level, rng);
         const hp = ENEMY_HP[kind];
         enemies.push({
             x: cx + 0.5,
             y: cy + 0.5,
             dx: dir[0],
             dy: dir[1],
-            speed: 1.2 + rng() * 1.0,
+            speed: ENEMY_TRAITS[kind].speed + rng() * 0.4,
             kind,
             hp,
             maxHp: hp,
+            chasing: false,
         });
     }
     return enemies;
@@ -54,16 +70,41 @@ export function spawnEnemies(d, entrance, count, rng) {
 function cellFree(d, x, y) {
     return !isSolid(d, Math.floor(x), Math.floor(y));
 }
-export function moveEnemies(enemies, d, dt, rng = Math.random) {
+function chaseDir(d, e, px, py) {
+    const ddx = px - e.x;
+    const ddy = py - e.y;
+    const sx = Math.sign(ddx) || 1;
+    const sy = Math.sign(ddy) || 1;
+    const primary = Math.abs(ddx) >= Math.abs(ddy) ? [sx, 0] : [0, sy];
+    const secondary = primary[0] !== 0 ? [0, sy] : [sx, 0];
+    for (const dir of [primary, secondary]) {
+        if (cellFree(d, e.x + dir[0] * 0.6, e.y + dir[1] * 0.6))
+            return dir;
+    }
+    return null;
+}
+export function moveEnemies(enemies, d, dt, px = -100, py = -100, rng = Math.random) {
     return enemies.map((e) => {
+        const dist = Math.hypot(px - e.x, py - e.y);
+        if (dist < ENEMY_TRAITS[e.kind].chaseRange) {
+            const dir = chaseDir(d, e, px, py);
+            if (dir) {
+                const sp = ENEMY_TRAITS[e.kind].speed;
+                const nx = e.x + dir[0] * sp * dt;
+                const ny = e.y + dir[1] * sp * dt;
+                if (cellFree(d, nx, ny))
+                    return { ...e, x: nx, y: ny, dx: dir[0], dy: dir[1], chasing: true };
+            }
+            return { ...e, chasing: true };
+        }
         const nx = e.x + e.dx * e.speed * dt;
         const ny = e.y + e.dy * e.speed * dt;
         if (cellFree(d, nx, ny))
-            return { ...e, x: nx, y: ny };
+            return { ...e, x: nx, y: ny, chasing: false };
         const free = DIRS.filter(([dx, dy]) => cellFree(d, e.x + dx * 0.6, e.y + dy * 0.6));
         if (free.length === 0)
-            return e;
+            return { ...e, chasing: false };
         const dir = pick(rng, free);
-        return { ...e, dx: dir[0], dy: dir[1] };
+        return { ...e, dx: dir[0], dy: dir[1], chasing: false };
     });
 }

@@ -7,6 +7,7 @@ import { spawnEnemies, enemyCountForLevel } from "./enemies.js";
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;
 export const AIR_PER_CELL = 0.25;
+export const MAX_HP = 3;
 export function baseAirForLevel(level, airMult = 1) {
     return Math.round(dungeonSizeForLevel(level) * 1.5 * airMult);
 }
@@ -24,7 +25,7 @@ export function createRun(level, seed, skills = {}) {
     for (const c of chests)
         taken.add(Math.floor(c.x) + Math.floor(c.y) * size);
     const pickups = placePickups(dungeon, taken, pickupCountForLevel(level), rng);
-    const enemies = spawnEnemies(dungeon, dungeon.entrance, enemyCountForLevel(level), rng);
+    const enemies = spawnEnemies(dungeon, dungeon.entrance, enemyCountForLevel(level), rng, level);
     const visited = new Uint8Array(size * size);
     visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
     return {
@@ -36,6 +37,9 @@ export function createRun(level, seed, skills = {}) {
         facingY: 0,
         air: baseAir,
         baseAir,
+        hp: MAX_HP,
+        maxHp: MAX_HP,
+        lostBy: "air",
         status: "ready",
         visited,
         visitedCount: 1,
@@ -125,7 +129,7 @@ export function tick(state, dt) {
         return state;
     const air = state.air - dt;
     if (air <= 0)
-        return { ...state, air: 0, status: "lost" };
+        return { ...state, air: 0, lostBy: "air", status: "lost" };
     return { ...state, air };
 }
 export function pickupChests(state) {
@@ -138,11 +142,23 @@ export function pickupChests(state) {
     return {
         ...state,
         chests,
+        hp: Math.min(state.maxHp, state.hp + 1),
         coins: state.coins + Math.round(hit.coins * state.coinMult),
         treasures: hit.treasure ? [...state.treasures, hit.treasure] : state.treasures,
         donations: hit.donation ? [...state.donations, hit.donation] : state.donations,
         chestOpenCount: state.chestOpenCount + 1,
     };
+}
+export function damagePlayer(state, dmg) {
+    if (state.status !== "running")
+        return state;
+    const hp = Math.max(0, state.hp - dmg);
+    if (hp <= 0)
+        return { ...state, hp: 0, lostBy: "hp", status: "lost" };
+    return { ...state, hp };
+}
+export function healPlayer(state, n) {
+    return { ...state, hp: Math.min(state.maxHp, state.hp + n) };
 }
 export function payout(state) {
     if (state.status === "won") {

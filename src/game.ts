@@ -16,6 +16,9 @@ export interface RunState {
   facingY: number;
   air: number;
   baseAir: number;
+  hp: number;
+  maxHp: number;
+  lostBy: "air" | "hp";
   status: RunStatus;
   visited: Uint8Array;
   visitedCount: number;
@@ -33,6 +36,7 @@ export interface RunState {
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;
 export const AIR_PER_CELL = 0.25;
+export const MAX_HP = 3;
 
 export function baseAirForLevel(level: number, airMult: number = 1): number {
   return Math.round(dungeonSizeForLevel(level) * 1.5 * airMult);
@@ -51,7 +55,7 @@ export function createRun(level: number, seed: number, skills: Owned = {}): RunS
   taken.add(dungeon.exit.y * size + dungeon.exit.x);
   for (const c of chests) taken.add(Math.floor(c.x) + Math.floor(c.y) * size);
   const pickups = placePickups(dungeon, taken, pickupCountForLevel(level), rng);
-  const enemies = spawnEnemies(dungeon, dungeon.entrance, enemyCountForLevel(level), rng);
+  const enemies = spawnEnemies(dungeon, dungeon.entrance, enemyCountForLevel(level), rng, level);
   const visited = new Uint8Array(size * size);
   visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
   return {
@@ -63,6 +67,9 @@ export function createRun(level: number, seed: number, skills: Owned = {}): RunS
     facingY: 0,
     air: baseAir,
     baseAir,
+    hp: MAX_HP,
+    maxHp: MAX_HP,
+    lostBy: "air",
     status: "ready",
     visited,
     visitedCount: 1,
@@ -151,7 +158,7 @@ export function movePlayer(state: RunState, ix: number, iy: number, dt: number):
 export function tick(state: RunState, dt: number): RunState {
   if (state.status !== "running") return state;
   const air = state.air - dt;
-  if (air <= 0) return { ...state, air: 0, status: "lost" };
+  if (air <= 0) return { ...state, air: 0, lostBy: "air", status: "lost" };
   return { ...state, air };
 }
 
@@ -164,11 +171,23 @@ export function pickupChests(state: RunState): RunState {
   return {
     ...state,
     chests,
+    hp: Math.min(state.maxHp, state.hp + 1),
     coins: state.coins + Math.round(hit.coins * state.coinMult),
     treasures: hit.treasure ? [...state.treasures, hit.treasure] : state.treasures,
     donations: hit.donation ? [...state.donations, hit.donation] : state.donations,
     chestOpenCount: state.chestOpenCount + 1,
   };
+}
+
+export function damagePlayer(state: RunState, dmg: number): RunState {
+  if (state.status !== "running") return state;
+  const hp = Math.max(0, state.hp - dmg);
+  if (hp <= 0) return { ...state, hp: 0, lostBy: "hp", status: "lost" };
+  return { ...state, hp };
+}
+
+export function healPlayer(state: RunState, n: number): RunState {
+  return { ...state, hp: Math.min(state.maxHp, state.hp + n) };
 }
 
 export function payout(state: RunState): { coins: number; treasures: string[]; donations: string[] } {
