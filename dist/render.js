@@ -8,6 +8,7 @@ export const BIOMES = [
         wallSide: "#3f9e3f",
         accent: "#f5b70a",
         fog: "#eaf6d8",
+        wallCol: 0,
     },
     {
         name: "Caverne Profonde",
@@ -17,6 +18,7 @@ export const BIOMES = [
         wallSide: "#7a5c38",
         accent: "#e0a83c",
         fog: "#efe9dc",
+        wallCol: 2,
     },
     {
         name: "Galassia",
@@ -26,87 +28,50 @@ export const BIOMES = [
         wallSide: "#6d5bd0",
         accent: "#f472b6",
         fog: "#e4e1f5",
+        wallCol: 4,
     },
 ];
 export function biomeForLevel(level) {
     const tier = Math.min(BIOMES.length - 1, Math.floor((level - 1) / 5));
     return BIOMES[tier];
 }
-function shade(hex, f) {
-    const v = parseInt(hex.slice(1), 16);
-    const r = Math.min(255, Math.round(((v >> 16) & 255) * f));
-    const g = Math.min(255, Math.round(((v >> 8) & 255) * f));
-    const b = Math.min(255, Math.round((v & 255) * f));
-    return `rgb(${r},${g},${b})`;
+const atlas = new Image();
+atlas.src = "assets/tiles.png";
+const playerSheet = new Image();
+playerSheet.src = "assets/player.png";
+function atlasReady() {
+    return atlas.complete && atlas.naturalWidth > 0;
 }
-const playerSprite = new Image();
-playerSprite.src = "assets/player.png";
-const chestSprite = new Image();
-chestSprite.src = "assets/chest.png";
-const tintCache = new Map();
-function tintedChest(kind) {
-    if (!chestSprite.complete || chestSprite.naturalWidth === 0)
-        return null;
-    const hit = tintCache.get(kind);
-    if (hit)
-        return hit;
-    const size = chestSprite.naturalWidth;
-    const cv = document.createElement("canvas");
-    cv.width = size;
-    cv.height = size;
-    const cx2 = cv.getContext("2d");
-    if (!cx2)
-        return null;
-    cx2.drawImage(chestSprite, 0, 0);
-    if (kind !== "legno") {
-        cx2.globalCompositeOperation = "source-atop";
-        cx2.globalAlpha = 0.4;
-        cx2.fillStyle = kind === "oro" ? "#ffd75e" : "#a78bfa";
-        cx2.fillRect(0, 0, size, size);
-    }
-    tintCache.set(kind, cv);
-    return cv;
+function biomeIndex(b) {
+    const i = BIOMES.indexOf(b);
+    return i < 0 ? 0 : i;
 }
-function cellHash(x, y) {
-    let h = (x * 73856093) ^ (y * 19349663);
-    h = Math.imul(h ^ (h >>> 13), 3266489917);
-    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-function decorateFloor(ctx, g, b, x, y) {
-    const h = cellHash(x, y);
+function drawFloor(ctx, g, b, x, y) {
     const sx = g.ox + x * g.tw;
     const sy = g.oy + y * g.tw;
-    if (h < 0.12) {
-        ctx.fillStyle = shade(b.wallTop, 1.15);
-        ctx.beginPath();
-        ctx.arc(sx + g.tw * 0.3, sy + g.tw * 0.35, g.tw * 0.06, 0, Math.PI * 2);
-        ctx.arc(sx + g.tw * 0.62, sy + g.tw * 0.6, g.tw * 0.05, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = b.accent;
-        ctx.beginPath();
-        ctx.arc(sx + g.tw * 0.3, sy + g.tw * 0.35, g.tw * 0.025, 0, Math.PI * 2);
-        ctx.fill();
+    if (atlasReady()) {
+        const bi = biomeIndex(b);
+        const col = (x + y) % 2 === 0 ? bi * 2 : bi * 2 + 1;
+        ctx.drawImage(atlas, col * 48, 0, 48, 48, sx, sy, g.tw, g.tw);
     }
-    else if (h < 0.3) {
-        ctx.strokeStyle = shade(b.floorB, 0.82);
-        ctx.lineWidth = Math.max(1, g.tw * 0.04);
-        ctx.beginPath();
-        ctx.moveTo(sx + g.tw * 0.4, sy + g.tw * 0.65);
-        ctx.lineTo(sx + g.tw * 0.4, sy + g.tw * 0.45);
-        ctx.moveTo(sx + g.tw * 0.55, sy + g.tw * 0.7);
-        ctx.lineTo(sx + g.tw * 0.55, sy + g.tw * 0.5);
-        ctx.stroke();
+    else {
+        ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
+        ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
     }
 }
 function drawWall(ctx, g, b, x, y) {
     const sx = g.ox + x * g.tw;
     const sy = g.oy + y * g.tw;
-    ctx.fillStyle = b.wallTop;
-    ctx.fillRect(sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
-    ctx.fillStyle = b.wallSide;
-    ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
-    ctx.fillStyle = shade(b.wallSide, 0.8);
-    ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, Math.max(1.5, g.tw * 0.06));
+    if (atlasReady()) {
+        ctx.drawImage(atlas, b.wallCol * 48, 48, 48, 48, sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
+        ctx.drawImage(atlas, (b.wallCol + 1) * 48, 48, 48, 48, sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
+    }
+    else {
+        ctx.fillStyle = b.wallTop;
+        ctx.fillRect(sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
+        ctx.fillStyle = b.wallSide;
+        ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
+    }
 }
 function drawExit(ctx, g, d, b) {
     const pulse = 0.8 + 0.2 * Math.sin(Date.now() / 300);
@@ -124,38 +89,29 @@ function drawExit(ctx, g, d, b) {
     ctx.beginPath();
     ctx.arc(cx, cy, g.tw * 0.28 * pulse, 0, Math.PI * 2);
     ctx.stroke();
+    if (atlasReady()) {
+        const s = g.tw * 0.9;
+        ctx.drawImage(atlas, 2 * 48, 2 * 48, 48, 48, cx - s / 2, cy - s / 2, s, s);
+    }
     ctx.restore();
 }
-const CHEST_COLORS = {
-    legno: { top: "#c98d4e", side: "#8b5a2b" },
-    oro: { top: "#ffd75e", side: "#e0a10c" },
-    ornata: { top: "#c4b0f5", side: "#8b6fe8" },
-};
+const CHEST_COLS = { legno: 6, oro: 7, ornata: 8 };
 function drawChest(ctx, g, x, y, kind) {
-    const cx = g.ox + x * g.tw;
-    const cy = g.oy + y * g.tw;
-    const w = g.tw * 0.52;
-    const h = g.tw * 0.34;
-    const lid = w * 0.26;
-    const tinted = tintedChest(kind);
+    const cx = g.ox + (x + 0.5) * g.tw;
+    const cy = g.oy + (y + 0.5) * g.tw;
+    const col = CHEST_COLS[kind] ?? 6;
+    const s = g.tw * 0.85;
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath();
-    ctx.ellipse(cx, cy, w * 0.55, g.tw * 0.14, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + g.tw * 0.3, s * 0.32, s * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (tinted) {
-        ctx.drawImage(tinted, cx - w * 0.75, cy - w * 0.85, w * 1.5, w * 1.5);
-        return;
+    if (atlasReady()) {
+        ctx.drawImage(atlas, col * 48, 48, 48, 48, cx - s / 2, cy - s * 0.62, s, s);
     }
-    const colors = CHEST_COLORS[kind] || CHEST_COLORS.legno;
-    ctx.fillStyle = colors.side;
-    ctx.fillRect(cx - w / 2, cy - h, w, h);
-    ctx.fillStyle = colors.top;
-    ctx.fillRect(cx - w / 2, cy - h - lid, w, lid);
-    ctx.strokeStyle = "rgba(0,0,0,0.28)";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(cx - w / 2, cy - h - lid, w, h + lid);
-    ctx.fillStyle = "#f5b70a";
-    ctx.fillRect(cx - w * 0.06, cy - h * 0.75, w * 0.12, h * 0.4);
+    else {
+        ctx.fillStyle = "#c98d4e";
+        ctx.fillRect(cx - s * 0.3, cy - s * 0.45, s * 0.6, s * 0.5);
+    }
 }
 function drawPlayer(ctx, g, state) {
     const cx = g.ox + state.px * g.tw;
@@ -166,15 +122,11 @@ function drawPlayer(ctx, g, state) {
     ctx.beginPath();
     ctx.ellipse(cx, cy, r * 0.75, r * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
-    if (playerSprite.complete && playerSprite.naturalWidth > 0) {
+    if (playerSheet.complete && playerSheet.naturalWidth > 0) {
+        const dir = state.facingY < 0 ? 3 : 0;
         const w = g.tw * 0.95;
-        const flip = state.facingX < 0;
-        ctx.save();
-        ctx.translate(cx, cy - r * 0.55 + bob);
-        if (flip)
-            ctx.scale(-1, 1);
-        ctx.drawImage(playerSprite, -w / 2, (-w * playerSprite.naturalHeight) / playerSprite.naturalWidth, w, (w * playerSprite.naturalHeight) / playerSprite.naturalWidth);
-        ctx.restore();
+        const h = (w * playerSheet.naturalHeight) / (playerSheet.naturalWidth / 4) / 2;
+        ctx.drawImage(playerSheet, dir * 48, Math.floor(Date.now() / 160) % 2 * 48, 48, 48, cx - w / 2, cy - h * 0.72, w, h);
         return;
     }
     ctx.fillStyle = "#38bdf8";
@@ -186,7 +138,7 @@ function drawPlayer(ctx, g, state) {
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
     ctx.arc(cx - r * 0.32 + eyeDx, cy - r * 1.2 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
-    ctx.arc(cx + r * 0.32 + eyeDx, cy - r * 1.2 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.34 + eyeDx, cy - r * 1.2 + bob + eyeDy, r * 0.1, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#0c4a6e";
     ctx.beginPath();
@@ -194,31 +146,12 @@ function drawPlayer(ctx, g, state) {
     ctx.arc(cx + r * 0.34 + eyeDx * 1.7, cy - r * 1.2 + bob + eyeDy * 1.7, r * 0.1, 0, Math.PI * 2);
     ctx.fill();
 }
-function drawPopups(ctx, g, fx) {
-    for (const p of fx.popups) {
-        const alpha = Math.max(0, 1 - p.age / 1.2);
-        const rise = p.age * g.tw * 0.6;
-        const cx = g.ox + p.x * g.tw;
-        const cy = g.oy + p.y * g.tw - g.tw * 0.7 - rise;
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.font = `700 ${Math.max(12, g.tw * 0.3)}px system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 3;
-        ctx.strokeText(p.text, cx, cy);
-        ctx.fillStyle = "#e0a10c";
-        ctx.fillText(p.text, cx, cy);
-        ctx.restore();
-    }
-}
 function roundRectPath(ctx, x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
     ctx.arcTo(x + w, y + h, x, y + h, r);
     ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
 }
 function drawMiniMap(ctx, state, seen, b, width) {
@@ -227,7 +160,6 @@ function drawMiniMap(ctx, state, seen, b, width) {
     const mx = width - mapSize - pad;
     const my = pad;
     const s = mapSize / state.dungeon.size;
-    const n = state.dungeon.size;
     ctx.save();
     ctx.globalAlpha = 0.92;
     roundRectPath(ctx, mx, my, mapSize, mapSize, 10);
@@ -238,9 +170,9 @@ function drawMiniMap(ctx, state, seen, b, width) {
     ctx.stroke();
     ctx.globalAlpha = 1;
     ctx.fillStyle = b.wallTop;
-    for (let y = 0; y < n; y++) {
-        for (let x = 0; x < n; x++) {
-            const i = y * n + x;
+    for (let y = 0; y < state.dungeon.size; y++) {
+        for (let x = 0; x < state.dungeon.size; x++) {
+            const i = y * state.dungeon.size + x;
             if (state.visited[i] === 1 && state.dungeon.solid[i] === 0) {
                 ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
             }
@@ -248,7 +180,7 @@ function drawMiniMap(ctx, state, seen, b, width) {
     }
     const ex = state.dungeon.exit.x;
     const ey = state.dungeon.exit.y;
-    if (seen[ey * n + ex] === 1) {
+    if (seen[ey * state.dungeon.size + ex] === 1) {
         ctx.fillStyle = b.accent;
         ctx.beginPath();
         ctx.arc(mx + (ex + 0.5) * s, my + (ey + 0.5) * s, Math.max(2.5, s * 0.7), 0, Math.PI * 2);
@@ -270,7 +202,6 @@ export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
     const g = cameraFor(state.px, state.py, n, canvas.width, canvas.height);
     const seen = seenMask(state.visited, n);
     const range = visibleRange(g, canvas.width, canvas.height);
-    const isSeen = (x, y) => seen[y * n + x] === 1;
     ctx.save();
     if (fx.shake > 0) {
         const m = fx.shake * fx.shake * 10;
@@ -284,51 +215,37 @@ export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
     for (let y = range.y0; y <= range.y1; y++) {
         for (let x = range.x0; x <= range.x1; x++) {
             if (d.solid[y * n + x] === 1)
-                continue;
-            ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
-            const sx = g.ox + x * g.tw;
-            const sy = g.oy + y * g.tw;
-            ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
-            if (isSeen(x, y))
-                decorateFloor(ctx, g, b, x, y);
-        }
-    }
-    if (isSeen(d.exit.x, d.exit.y))
-        drawExit(ctx, g, d, b);
-    const chests = state.chests.filter((c) => !c.opened && isSeen(c.x, c.y));
-    const ents = [
-        ...chests.map((c) => ({ y: c.y, draw: () => drawChest(ctx, g, c.x, c.y, c.kind) })),
-        { y: state.py, draw: () => drawPlayer(ctx, g, state) },
-    ];
-    ents.sort((a, c) => a.y - c.y);
-    let ei = 0;
-    for (let y = range.y0; y <= range.y1 + 1; y++) {
-        for (let x = range.x0; x <= range.x1; x++) {
-            if (d.solid[y * n + x] === 1)
                 drawWall(ctx, g, b, x, y);
-        }
-        while (ei < ents.length && Math.floor(ents[ei].y) === y) {
-            ents[ei].draw();
-            ei++;
+            else
+                drawFloor(ctx, g, b, x, y);
         }
     }
-    while (ei < ents.length) {
-        ents[ei].draw();
-        ei++;
+    if (seen[d.exit.y * n + d.exit.x] === 1)
+        drawExit(ctx, g, d, b);
+    for (const c of state.chests) {
+        if (!c.opened && seen[c.y * n + c.x] === 1)
+            drawChest(ctx, g, c.x, c.y, c.kind);
     }
-    ctx.fillStyle = b.fog;
-    for (let y = range.y0; y <= range.y1 + 1; y++) {
-        for (let x = range.x0; x <= range.x1; x++) {
-            if (x < 0 || y < 0 || x >= n || y >= n)
-                continue;
-            if (seen[y * n + x] === 1)
-                continue;
-            const sx = g.ox + x * g.tw;
-            const sy = g.oy + y * g.tw;
-            ctx.fillRect(sx, sy - g.rise - 1, g.tw + 0.5, g.tw + g.rise + 2);
-        }
-    }
+    drawPlayer(ctx, g, state);
     drawPopups(ctx, g, fx);
     ctx.restore();
     drawMiniMap(ctx, state, seen, b, canvas.width);
+}
+function drawPopups(ctx, g, fx) {
+    for (const p of fx.popups) {
+        const alpha = Math.max(0, 1 - p.age / 1.2);
+        const rise = p.age * g.tw * 0.6;
+        const cx = g.ox + p.x * g.tw;
+        const cy = g.oy + p.y * g.tw - g.tw * 0.7 - rise;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = `700 ${Math.max(12, g.tw * 0.3)}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 3;
+        ctx.strokeText(p.text, cx, cy);
+        ctx.fillStyle = "#e0a10c";
+        ctx.fillText(p.text, cx, cy);
+        ctx.restore();
+    }
 }

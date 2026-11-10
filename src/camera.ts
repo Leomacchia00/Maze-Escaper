@@ -7,7 +7,7 @@ export interface Cam {
   oy: number;
 }
 
-export const VISIBLE_TILES = 14;
+export const VISIBLE_TILES = 11;
 export const RISE_RATIO = 0.3;
 export const FRONT_RATIO = 0.42;
 

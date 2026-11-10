@@ -1,4 +1,4 @@
-const CACHE = "maze-escaper-v3";
+const CACHE = "maze-escaper-v4";
 
 const CACHE_FIRST = [
   "assets/",
@@ -21,7 +21,7 @@ const PRECACHE = [
   "./dist/skills.js",
   "./dist/ui.js",
   "./assets/player.png",
-  "./assets/chest.png",
+  "./assets/tiles.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];

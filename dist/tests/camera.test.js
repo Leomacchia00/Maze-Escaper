@@ -9,8 +9,8 @@ test("il tile dipende dal lato minore e dalle tile visibili", () => {
 });
 test("dungeon piccolo: mappa centrata a prescindere dal giocatore", () => {
     const cam = cameraFor(9, 2, 10, 700, 700);
-    assert.equal(cam.tw, 50);
-    assert.equal(cam.ox, 100);
+    assert.equal(cam.tw, 700 / VISIBLE_TILES);
+    assert.equal(cam.ox, (700 - 10 * cam.tw) / 2);
 });
 test("clamp a sinistra: vicino al bordo non si mostra fuori mappa", () => {
     const cam = cameraFor(1.5, 30, 61, 720, 720);
