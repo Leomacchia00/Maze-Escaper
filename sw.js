@@ -1,4 +1,4 @@
-const CACHE = "maze-escaper-v5";
+const CACHE = "maze-escaper-v6";
 
 const CACHE_FIRST = [
   "assets/",
