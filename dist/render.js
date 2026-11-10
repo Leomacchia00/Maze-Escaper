@@ -181,6 +181,8 @@ function drawMiniMap(ctx, state, seen, b, width) {
     ctx.strokeStyle = "rgba(53,64,42,0.25)";
     ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.fillStyle = "rgba(53,64,42,0.08)";
+    ctx.fillRect(mx + 1, my + 1, mapSize - 2, mapSize - 2);
     ctx.globalAlpha = 1;
     ctx.fillStyle = b.wallTop;
     for (let y = 0; y < state.dungeon.size; y++) {
