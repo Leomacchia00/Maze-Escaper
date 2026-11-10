@@ -61,24 +61,23 @@ export interface Fx {
 interface Geo {
   size: number;
   tw: number;
-  th: number;
-  wallH: number;
+  frontH: number;
+  rise: number;
   ox: number;
   oy: number;
 }
 
 function geoFor(width: number, height: number, size: number): Geo {
-  const tw = (width / (size + 0.5)) * 0.96;
-  const th = tw / 2;
-  const wallH = tw * 0.7;
-  const contentH = size * th + wallH;
+  const tw = (Math.min(width, height) / size) * 0.96;
+  const frontH = tw * 0.42;
+  const rise = tw * 0.3;
   return {
     size,
     tw,
-    th,
-    wallH,
-    ox: width / 2,
-    oy: (height - contentH) / 2 + wallH,
+    frontH,
+    rise,
+    ox: (width - size * tw) / 2,
+    oy: (height - size * tw) / 2 + rise,
   };
 }
 
@@ -90,94 +89,75 @@ function shade(hex: string, f: number): string {
   return `rgb(${r},${g},${b})`;
 }
 
-function poly(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>, color: string): void {
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = color;
-  ctx.fill();
-}
+const staticCache = new WeakMap<
+  Dungeon,
+  { canvas: HTMLCanvasElement; width: number; height: number; rows: number[][] }
+>();
 
-const staticCache = new WeakMap<Dungeon, { canvas: HTMLCanvasElement; width: number; height: number }>();
-
-function getStaticLayer(d: Dungeon, b: Biome, width: number, height: number): HTMLCanvasElement {
+function getStaticLayer(
+  d: Dungeon, b: Biome, width: number, height: number
+): { canvas: HTMLCanvasElement; rows: number[][] } {
   const cached = staticCache.get(d);
-  if (cached && cached.width === width && cached.height === height) return cached.canvas;
+  if (cached && cached.width === width && cached.height === height) return cached;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const g = geoFor(width, height, d.size);
-  const iso = (wx: number, wy: number, z: number): [number, number] => [
-    g.ox + (wx - wy) * (g.tw / 2),
-    g.oy + (wx + wy) * (g.th / 2) - z,
-  ];
-  const grad = ctx.createLinearGradient(0, 0, 0, height);
-  grad.addColorStop(0, "#fdf8ec");
-  grad.addColorStop(1, b.fog);
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, width, height);
-  interface Item { depth: number; draw: () => void }
-  const items: Item[] = [];
-  for (let y = 0; y < d.size; y++) {
-    for (let x = 0; x < d.size; x++) {
-      const solid = d.solid[y * d.size + x] === 1;
-      if (solid) {
-        const top = iso(x, y, g.wallH);
-        const right = iso(x + 1, y, g.wallH);
-        const front = iso(x + 1, y + 1, g.wallH);
-        const left = iso(x, y + 1, g.wallH);
-        const rBot = iso(x + 1, y, 0);
-        const fBotR = iso(x + 1, y + 1, 0);
-        const lBot = iso(x, y + 1, 0);
-        items.push({
-          depth: x + y,
-          draw: () => {
-            poly(ctx, [left, front, fBotR, lBot], shade(b.wallSide, 0.72));
-            poly(ctx, [right, front, fBotR, rBot], b.wallSide);
-            poly(ctx, [top, right, front, left], b.wallTop);
-          },
-        });
-      } else {
-        const top = iso(x, y, 0);
-        const right = iso(x + 1, y, 0);
-        const front = iso(x + 1, y + 1, 0);
-        const left = iso(x, y + 1, 0);
-        const color = (x + y) % 2 === 0 ? b.floorA : b.floorB;
-        items.push({
-          depth: x + y,
-          draw: () => poly(ctx, [top, right, front, left], color),
-        });
+  const rows: number[][] = Array.from({ length: d.size }, () => []);
+  if (ctx) {
+    const g = geoFor(width, height, d.size);
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, "#fdf8ec");
+    grad.addColorStop(1, b.fog);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    for (let y = 0; y < d.size; y++) {
+      for (let x = 0; x < d.size; x++) {
+        const sx = g.ox + x * g.tw;
+        const sy = g.oy + y * g.tw;
+        if (d.solid[y * d.size + x] === 1) {
+          rows[y].push(x);
+        } else {
+          ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
+          ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
+        }
       }
     }
   }
-  items.sort((a, c) => a.depth - c.depth);
-  for (const it of items) it.draw();
-  staticCache.set(d, { canvas, width, height });
-  return canvas;
+  staticCache.set(d, { canvas, width, height, rows });
+  return { canvas, rows };
+}
+
+function drawWall(
+  ctx: CanvasRenderingContext2D, g: Geo, b: Biome, x: number, y: number
+): void {
+  const sx = g.ox + x * g.tw;
+  const sy = g.oy + y * g.tw;
+  ctx.fillStyle = b.wallTop;
+  ctx.fillRect(sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
+  ctx.fillStyle = b.wallSide;
+  ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
+  ctx.fillStyle = shade(b.wallSide, 0.8);
+  ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, Math.max(1.5, g.tw * 0.06));
 }
 
 function drawExit(
   ctx: CanvasRenderingContext2D, g: Geo, d: Dungeon, b: Biome
 ): void {
-  const ex = d.exit.x + 0.5;
-  const ey = d.exit.y + 0.5;
   const pulse = 0.8 + 0.2 * Math.sin(Date.now() / 300);
-  const cx = g.ox + (ex - ey) * (g.tw / 2);
-  const cy = g.oy + (ex + ey) * (g.th / 2);
+  const cx = g.ox + (d.exit.x + 0.5) * g.tw;
+  const cy = g.oy + (d.exit.y + 0.5) * g.tw;
   ctx.save();
   ctx.globalAlpha = 0.35 * pulse;
   ctx.fillStyle = b.accent;
   ctx.beginPath();
-  ctx.ellipse(cx, cy, g.tw * 0.38 * pulse, g.th * 0.38 * pulse, 0, 0, Math.PI * 2);
+  ctx.arc(cx, cy, g.tw * 0.36 * pulse, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
   ctx.strokeStyle = b.accent;
-  ctx.lineWidth = Math.max(2, g.tw * 0.06);
+  ctx.lineWidth = Math.max(2, g.tw * 0.07);
   ctx.beginPath();
-  ctx.ellipse(cx, cy, g.tw * 0.3 * pulse, g.th * 0.3 * pulse, 0, 0, Math.PI * 2);
+  ctx.arc(cx, cy, g.tw * 0.28 * pulse, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 }
@@ -188,79 +168,73 @@ const CHEST_COLORS: Record<string, { top: string; side: string }> = {
   ornata: { top: "#c4b0f5", side: "#8b6fe8" },
 };
 
-function drawChests(
-  ctx: CanvasRenderingContext2D, g: Geo, state: RunState
+function drawChest(
+  ctx: CanvasRenderingContext2D, g: Geo, x: number, y: number, kind: string
 ): void {
-  for (const c of state.chests) {
-    if (c.opened) continue;
-    const cx = c.x;
-    const cy = c.y;
-    const base = [g.ox + (cx - cy) * (g.tw / 2), g.oy + (cx + cy) * (g.th / 2)];
-    const w = g.tw * 0.34;
-    const h = w * 0.7;
-    const x0 = base[0] - w / 2;
-    const colors = CHEST_COLORS[c.kind] || CHEST_COLORS.legno;
-    ctx.fillStyle = "rgba(0,0,0,0.15)";
-    ctx.beginPath();
-    ctx.ellipse(base[0], base[1], w * 0.55, g.th * 0.28, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = colors.side;
-    ctx.fillRect(x0, base[1] - h, w, h);
-    ctx.fillStyle = colors.top;
-    ctx.fillRect(x0, base[1] - h - w * 0.22, w, w * 0.22);
-    ctx.strokeStyle = "rgba(0,0,0,0.25)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x0, base[1] - h, w, h);
-  }
+  const cx = g.ox + x * g.tw;
+  const cy = g.oy + y * g.tw;
+  const w = g.tw * 0.52;
+  const h = g.tw * 0.34;
+  const lid = w * 0.26;
+  const colors = CHEST_COLORS[kind] || CHEST_COLORS.legno;
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, w * 0.55, g.tw * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = colors.side;
+  ctx.fillRect(cx - w / 2, cy - h, w, h);
+  ctx.fillStyle = colors.top;
+  ctx.fillRect(cx - w / 2, cy - h - lid, w, lid);
+  ctx.strokeStyle = "rgba(0,0,0,0.28)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - w / 2, cy - h - lid, w, h + lid);
+  ctx.fillStyle = "#f5b70a";
+  ctx.fillRect(cx - w * 0.06, cy - h * 0.75, w * 0.12, h * 0.4);
 }
 
 function drawPlayer(
   ctx: CanvasRenderingContext2D, g: Geo, state: RunState
 ): void {
-  const cx = g.ox + (state.px - state.py) * (g.tw / 2);
-  const cy = g.oy + (state.px + state.py) * (g.th / 2);
+  const cx = g.ox + state.px * g.tw;
+  const cy = g.oy + state.py * g.tw;
   const bob = Math.sin(Date.now() / 140) * g.tw * 0.03;
-  const r = g.tw * 0.22;
+  const r = g.tw * 0.26;
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   ctx.beginPath();
-  ctx.ellipse(cx, cy, r * 0.85, g.th * 0.32, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy, r * 0.75, r * 0.3, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#38bdf8";
   ctx.beginPath();
-  ctx.ellipse(cx, cy - r * 1.1 + bob, r, r * 1.08, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, cy - r * 1.05 + bob, r, r * 1.1, 0, 0, Math.PI * 2);
   ctx.fill();
+  const eyeDx = state.facingX * r * 0.18;
+  const eyeDy = state.facingY * r * 0.18;
   ctx.fillStyle = "#ffffff";
-  const fx = state.facingX;
-  const fy = state.facingY;
-  const eyeDx = ((fx - fy) * g.tw) / 2 * 0.12;
-  const eyeDy = ((fx + fy) * g.th) / 2 * 0.12;
   ctx.beginPath();
-  ctx.arc(cx - r * 0.32 + eyeDx, cy - r * 1.25 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
-  ctx.arc(cx + r * 0.32 + eyeDx, cy - r * 1.25 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
+  ctx.arc(cx - r * 0.32 + eyeDx, cy - r * 1.2 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
+  ctx.arc(cx + r * 0.32 + eyeDx, cy - r * 1.2 + bob + eyeDy, r * 0.22, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#0c4a6e";
   ctx.beginPath();
-  ctx.arc(cx - r * 0.3 + eyeDx * 1.6, cy - r * 1.25 + bob + eyeDy * 1.6, r * 0.1, 0, Math.PI * 2);
-  ctx.arc(cx + r * 0.34 + eyeDx * 1.6, cy - r * 1.25 + bob + eyeDy * 1.6, r * 0.1, 0, Math.PI * 2);
+  ctx.arc(cx - r * 0.3 + eyeDx * 1.7, cy - r * 1.2 + bob + eyeDy * 1.7, r * 0.1, 0, Math.PI * 2);
+  ctx.arc(cx + r * 0.34 + eyeDx * 1.7, cy - r * 1.2 + bob + eyeDy * 1.7, r * 0.1, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawPopups(
-  ctx: CanvasRenderingContext2D, g: Geo, fx: Fx
-): void {
+function drawPopups(ctx: CanvasRenderingContext2D, g: Geo, fx: Fx): void {
   for (const p of fx.popups) {
     const alpha = Math.max(0, 1 - p.age / 1.2);
-    const rise = p.age * g.tw * 0.5;
-    const cx = g.ox + (p.x - p.y) * (g.tw / 2);
-    const cy = g.oy + (p.x + p.y) * (g.th / 2) - g.tw * 0.5 - rise;
+    const rise = p.age * g.tw * 0.6;
+    const cx = g.ox + p.x * g.tw;
+    const cy = g.oy + p.y * g.tw - g.tw * 0.7 - rise;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "#e0a10c";
-    ctx.font = `700 ${Math.max(12, g.tw * 0.28)}px system-ui, sans-serif`;
+    ctx.font = `700 ${Math.max(12, g.tw * 0.3)}px system-ui, sans-serif`;
     ctx.textAlign = "center";
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 3;
     ctx.strokeText(p.text, cx, cy);
+    ctx.fillStyle = "#e0a10c";
     ctx.fillText(p.text, cx, cy);
     ctx.restore();
   }
@@ -275,16 +249,32 @@ export function drawRun(
   if (!ctx) return;
   const b = biomeForLevel(state.level);
   const g = geoFor(canvas.width, canvas.height, state.dungeon.size);
+  const { canvas: layer, rows } = getStaticLayer(state.dungeon, b, canvas.width, canvas.height);
   ctx.save();
   if (fx.shake > 0) {
     const m = fx.shake * fx.shake * 10;
     ctx.translate((Math.random() * 2 - 1) * m, (Math.random() * 2 - 1) * m);
   }
-  const layer = getStaticLayer(state.dungeon, b, canvas.width, canvas.height);
   ctx.drawImage(layer, 0, 0);
   drawExit(ctx, g, state.dungeon, b);
-  drawChests(ctx, g, state);
-  drawPlayer(ctx, g, state);
+  const chests = state.chests.filter((c) => !c.opened);
+  const ents: Array<{ y: number; draw: () => void }> = [
+    ...chests.map((c) => ({ y: c.y, draw: () => drawChest(ctx, g, c.x, c.y, c.kind) })),
+    { y: state.py, draw: () => drawPlayer(ctx, g, state) },
+  ];
+  ents.sort((a, c) => a.y - c.y);
+  let ei = 0;
+  for (let y = 0; y < g.size; y++) {
+    for (const x of rows[y]) drawWall(ctx, g, b, x, y);
+    while (ei < ents.length && Math.floor(ents[ei].y) === y) {
+      ents[ei].draw();
+      ei++;
+    }
+  }
+  while (ei < ents.length) {
+    ents[ei].draw();
+    ei++;
+  }
   drawPopups(ctx, g, fx);
   ctx.restore();
 }
