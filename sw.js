@@ -1,4 +1,4 @@
-const CACHE = "maze-escaper-v4";
+const CACHE = "maze-escaper-v5";
 
 const CACHE_FIRST = [
   "assets/",
@@ -49,7 +49,18 @@ self.addEventListener("fetch", (e) => {
 
   if (cacheFirst) {
     e.respondWith(
-      caches.match(req).then((hit) => hit || fetch(req))
+      caches.match(req).then((hit) => {
+        const refresh = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy));
+            }
+            return res;
+          })
+          .catch(() => hit);
+        return hit || refresh;
+      })
     );
     return;
   }
