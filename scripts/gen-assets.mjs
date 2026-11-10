@@ -1,4 +1,5 @@
 // Genera assets/tiles.png (atlas 9x3 tile da 48px) e assets/player.png (4 direzioni x 2 frame).
+// Stile "cozy pixel" ispirato ai tileset Anokolisa: pastello, tondo, outline caldi.
 // Zero dipendenze: encoder PNG scritto a mano (RGBA8, filtro 0).
 import { deflateSync } from "node:zlib";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -36,11 +37,30 @@ function hex(h) {
   return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
 }
 
+function mix(h, f) {
+  const c = hex(h);
+  return c.map((v) => Math.min(255, Math.round(v * f)));
+}
+
 function hash2(x, y, s) {
   let h = Math.imul(x, 0x27d4eb2d) ^ Math.imul(y, 0x165667b1) ^ Math.imul(s | 0, 0x9e3779b9);
   h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function rrect(img, x, y, w, h, r, c) {
+  for (let yy = 0; yy < h; yy++) {
+    for (let xx = 0; xx < w; xx++) {
+      const cx = Math.min(xx, w - 1 - xx);
+      const cy = Math.min(yy, h - 1 - yy);
+      if (cx < r && cy < r) {
+        const dx = r - cx, dy = r - cy;
+        if (dx * dx + dy * dy > r * r) continue;
+      }
+      img.px(x + xx, y + yy, c);
+    }
+  }
 }
 
 function crc32(buf) {
@@ -87,87 +107,158 @@ function encodePNG(img) {
   ]);
 }
 
-// ---------- palette biomi ----------
+// ---------- palette biomi (contratto con src/render.ts) ----------
 const BIOMES = [
-  { floorA: "#eaf6d8", floorB: "#d9eec2", decor: "#7ed957", wallTop: "#7ed957", wallSide: "#3f9e3f" },
-  { floorA: "#e7e0d2", floorB: "#d8cfbd", decor: "#b08d5f", wallTop: "#b08d5f", wallSide: "#7a5c38" },
-  { floorA: "#e4e1f5", floorB: "#d3cfee", decor: "#a78bfa", wallTop: "#a78bfa", wallSide: "#6d5bd0" },
+  { floorA: "#eaf6d8", floorB: "#d9eec2", wallTop: "#7ed957", wallSide: "#3f9e3f", outline: "#4a6a3e" },
+  { floorA: "#e7e0d2", floorB: "#d8cfbd", wallTop: "#b08d5f", wallSide: "#7a5c38", outline: "#4a3828" },
+  { floorA: "#e4e1f5", floorB: "#d3cfee", wallTop: "#a78bfa", wallSide: "#6d5bd0", outline: "#3e3270" },
 ];
 
 // ---------- atlas tiles 9x3 ----------
 const atlas = new Img(9 * T, 3 * T);
 
-function floorTile(base, speck, light, seed) {
+function putTile(tile, col, row) {
+  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
+    const si = (y * T + x) * 4;
+    const di = ((row * T + y) * atlas.w + col * T + x) * 4;
+    atlas.d[di] = tile.d[si]; atlas.d[di + 1] = tile.d[si + 1]; atlas.d[di + 2] = tile.d[si + 2]; atlas.d[di + 3] = tile.d[si + 3];
+  }
+}
+
+// ---------- pavimenti: chiazze morbide seamless + dettagli carini ----------
+function floorTile(base, patch, light, seed, decorate) {
   const img = new Img(T, T);
   img.rect(0, 0, T, T, hex(base));
-  for (let ly = 0; ly < 16; ly++) {
-    for (let lx = 0; lx < 16; lx++) {
-      const h = hash2(lx, ly, seed);
-      if (h < 0.10) img.rect(lx * 3, ly * 3, 3, 3, hex(speck));
-      else if (h > 0.92) img.rect(lx * 3, ly * 3, 3, 3, hex(light));
+  for (let i = 0; i < 5; i++) {
+    const bx = hash2(i, seed, 11) * T;
+    const by = hash2(i, seed, 23) * T;
+    const r = 5 + hash2(i, seed, 31) * 7;
+    for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) {
+      img.ellipse(bx + dx, by + dy, r, r * 0.65, hex(patch));
+    }
+  }
+  for (let i = 0; i < 6; i++) {
+    const x = 3 + Math.floor(hash2(i, seed, 41) * (T - 6));
+    const y = 3 + Math.floor(hash2(i, seed, 53) * (T - 6));
+    img.rect(x, y, 3, 3, hex(light));
+  }
+  if (decorate) decorate(img);
+  return img;
+}
+
+function flower(img, x, y, petal, center) {
+  img.rect(x - 3, y, 3, 3, petal);
+  img.rect(x + 3, y, 3, 3, petal);
+  img.rect(x, y - 3, 3, 3, petal);
+  img.rect(x, y + 3, 3, 3, petal);
+  img.rect(x, y, 3, 3, center);
+}
+
+function tuft(img, x, y, c) {
+  img.rect(x, y - 3, 3, 6, c);
+  img.rect(x - 3, y, 3, 3, c);
+  img.rect(x + 3, y, 3, 3, c);
+}
+
+const DECOR = [
+  (img) => {
+    flower(img, 12, 14, [255, 255, 255, 255], [245, 183, 10, 255]);
+    flower(img, 33, 34, [255, 200, 220, 255], [245, 183, 10, 255]);
+    tuft(img, 36, 12, [140, 205, 110, 255]);
+    tuft(img, 10, 38, [140, 205, 110, 255]);
+  },
+  (img) => {
+    img.ellipse(12, 14, 4, 3, [150, 140, 125, 255]);
+    img.ellipse(34, 32, 5, 4, [150, 140, 125, 255]);
+    img.rect(20, 28, 3, 3, [120, 105, 90, 255]);
+    img.rect(23, 31, 3, 3, [120, 105, 90, 255]);
+    img.rect(26, 34, 3, 3, [120, 105, 90, 255]);
+  },
+  (img) => {
+    img.rect(12, 12, 3, 3, [255, 255, 255, 230]);
+    img.rect(32, 30, 3, 3, [255, 255, 255, 230]);
+    img.rect(22, 38, 3, 3, [255, 240, 250, 200]);
+    img.rect(38, 10, 3, 3, [255, 240, 250, 200]);
+    img.rect(9, 33, 9, 3, [255, 255, 255, 160]);
+    img.rect(12, 30, 3, 9, [255, 255, 255, 160]);
+  },
+];
+
+// ---------- muri: blocco smussato con outline caldo + faccia a mattoni ----------
+function wallCapTile(top, edge) {
+  const img = new Img(T, T);
+  rrect(img, 2, 2, T - 4, T - 4, 9, hex(top));
+  rrect(img, 5, 5, T - 10, 9, 5, mix(top, 1.18));
+  rrect(img, 5, T - 12, T - 10, 5, 3, mix(top, 0.82));
+  for (let yy = 0; yy < T - 4; yy++) for (let xx = 0; xx < T - 4; xx++) {
+    const cx = Math.min(xx, T - 5 - xx), cy = Math.min(yy, T - 5 - yy);
+    if (cx < 9 && cy < 9) {
+      const dx = 9 - cx, dy = 9 - cy;
+      const inside = dx * dx + dy * dy <= 9 * 9;
+      const prevInside = (() => {
+        const px2 = Math.min(xx - 1, T - 6 - xx), py2 = Math.min(yy, T - 6 - yy);
+        if (px2 < 9 && py2 < 9) { const a = 9 - px2, b = 9 - py2; return a * a + b * b <= 9 * 9; }
+        return true;
+      })();
+      if (inside && !prevInside) img.px(xx + 2, yy + 2, hex(edge));
     }
   }
   return img;
 }
 
-function wallCap(top, edge) {
-  const img = new Img(T, T);
-  img.rect(0, 0, T, T, hex(top));
-  img.rect(0, 0, T, 2, hex(edge));
-  img.rect(0, T - 2, T, 2, hex(edge));
-  img.rect(0, 0, 2, T, hex(edge));
-  img.rect(T - 2, 0, 2, T, hex(edge));
-  return img;
-}
-
-function wallFront(side, mortar, hi) {
+function wallFrontTile(side, hi, edge) {
   const img = new Img(T, T);
   img.rect(0, 0, T, T, hex(side));
   for (let row = 0; row < 3; row++) {
     const y = row * 16;
-    img.rect(0, y, T, 2, hex(mortar));
+    img.rect(0, y, T, 2, mix(side, 0.7));
     const off = row % 2 === 0 ? 0 : 12;
-    img.rect((off + 12) % T, y, 2, 16, hex(mortar));
-    img.rect((off + 28) % T, y, 2, 16, hex(mortar));
+    img.rect((off + 12) % T, y, 2, 16, mix(side, 0.7));
+    img.rect((off + 28) % T, y, 2, 16, mix(side, 0.7));
     img.rect(0, y + 2, T, 2, hex(hi));
   }
+  img.rect(0, T - 3, T, 3, mix(side, 0.65));
   return img;
 }
 
+// ---------- oggetti ----------
 function chestTile(body, lid, metal, gem) {
   const img = new Img(T, T);
-  img.rect(9, 20, 30, 18, hex(body));
-  img.rect(9, 12, 30, 9, hex(lid));
-  img.rect(9, 20, 30, 2, hex(metal));
-  img.rect(21, 12, 6, 26, hex(metal));
-  img.rect(22, 24, 4, 7, hex(gem));
-  img.rect(9, 36, 30, 2, hex("#00000055"));
+  rrect(img, 8, 18, 32, 20, 5, hex(body));
+  rrect(img, 8, 10, 32, 12, 6, hex(lid));
+  rrect(img, 8, 10, 32, 4, 2, mix(lid, 1.2));
+  img.rect(8, 20, 32, 3, hex(metal));
+  img.rect(20, 10, 5, 28, hex(metal));
+  rrect(img, 20, 22, 5, 8, 2, hex(gem));
+  img.rect(10, 36, 28, 2, mix(body, 0.75));
   return img;
 }
 
 function torchTile() {
   const img = new Img(T, T);
-  img.rect(21, 20, 6, 16, hex("#8b5a2b"));
-  img.rect(19, 14, 10, 8, hex("#604030"));
+  rrect(img, 20, 20, 8, 16, 3, [139, 90, 43, 255]);
+  rrect(img, 17, 14, 14, 9, 4, [96, 64, 48, 255]);
   img.circle(24, 12, 7, [245, 130, 32, 255]);
   img.circle(24, 11, 4, [255, 220, 90, 255]);
   img.circle(24, 10, 2, [255, 255, 255, 255]);
+  img.circle(24, 12, 10, [245, 130, 32, 60]);
   return img;
 }
 
 function portalTile(accent) {
   const img = new Img(T, T);
-  img.circle(24, 24, 15, [...hex(accent), 90]);
-  img.circle(24, 24, 11, [...hex(accent), 160]);
-  img.circle(24, 24, 7, [255, 255, 255, 210]);
+  img.circle(24, 24, 16, [...hex(accent), 70]);
+  img.circle(24, 24, 12, [...hex(accent), 140]);
+  img.circle(24, 24, 8, [255, 255, 255, 200]);
+  img.circle(24, 24, 4, [255, 255, 255, 255]);
   return img;
 }
 
 function coinTile() {
   const img = new Img(T, T);
-  img.circle(24, 24, 7, [224, 161, 12, 255]);
-  img.circle(24, 24, 5, [255, 215, 94, 255]);
-  img.rect(22, 20, 3, 3, [255, 255, 255, 255]);
+  img.circle(24, 24, 8, [224, 161, 12, 255]);
+  img.circle(24, 24, 6, [255, 215, 94, 255]);
+  img.rect(21, 20, 3, 3, [255, 255, 255, 255]);
   return img;
 }
 
@@ -182,42 +273,32 @@ function gemTile(color) {
   return img;
 }
 
-// riga 0: pavimenti (A/B per bioma) + decorazioni
+// ---------- assemblaggio atlas ----------
+// riga 0: pavimenti A/B per bioma (contratto: bi*2 e bi*2+1)
 const floorSets = [
-  { base: "#eaf6d8", speck: "#cfe4b0", light: "#f6fbee" },
-  { base: "#e7e0d2", speck: "#cfc4a8", light: "#f4efe2" },
-  { base: "#e4e1f5", speck: "#cfc8ee", light: "#f7f6ff" },
+  { base: "#eaf6d8", patch: "#d9eec2", light: "#f6fbee" },
+  { base: "#e7e0d2", patch: "#d8cfbd", light: "#f4efe2" },
+  { base: "#e4e1f5", patch: "#d3cfee", light: "#f7f6ff" },
 ];
 floorSets.forEach((s, i) => {
-  atlas.copy?.(0, 0);
-  const a = floorTile(s.base, s.speck, s.light, 101 + i);
-  const b = floorTile(s.base, s.speck, s.light, 202 + i);
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    const si = (y * atlas.w + x) * 4, di = (y * atlas.w + (i * 2) * T + x) * 4;
-    atlas.d[di] = a.d[si]; atlas.d[di + 1] = a.d[si + 1]; atlas.d[di + 2] = a.d[si + 2]; atlas.d[di + 3] = a.d[si + 3];
-    const dj = (y * atlas.w + (i * 2 + 1) * T + x) * 4;
-    atlas.d[dj] = b.d[si]; atlas.d[dj + 1] = b.d[si + 1]; atlas.d[dj + 2] = b.d[si + 2]; atlas.d[dj + 3] = b.d[si + 3];
-  }
+  putTile(floorTile(s.base, s.patch, s.light, 101 + i, DECOR[i]), i * 2, 0);
+  putTile(floorTile(s.base, s.patch, s.light, 202 + i, DECOR[i]), i * 2 + 1, 0);
 });
 
-// riga 1: cappelli muro (A) + facce frontali (B) per bioma
+// riga 1: cappelli muro (bi*2) + facce frontali (bi*2+1), casse a cols 6-8
 BIOMES.forEach((b, i) => {
-  const cap = wallCap(b.wallTop, b.wallSide);
-  const front = wallFront(b.wallSide, "#00000044", hex(b.wallTop).map((v) => Math.min(255, v * 1.15)));
-  for (let y = 0; y < T; y++) for (let x = 0; x < T; x++) {
-    const si = (y * T + x) * 4;
-    const dCap = (y * atlas.w + (i * 2) * T + x) * 4 + T * 4 * atlas.w;
-    const dFront = (y * atlas.w + (i * 2 + 1) * T + x) * 4 + T * 4 * atlas.w;
-    atlas.d[dCap] = cap.d[si]; atlas.d[dCap + 1] = cap.d[si + 1]; atlas.d[dCap + 2] = cap.d[si + 2]; atlas.d[dCap + 3] = cap.d[si + 3];
-    atlas.d[dFront] = front.d[si]; atlas.d[dFront + 1] = front.d[si + 1]; atlas.d[dFront + 2] = front.d[si + 2]; atlas.d[dFront + 3] = front.d[si + 3];
-  }
+  putTile(wallCapTile(b.wallTop, b.outline), i * 2, 1);
+  putTile(wallFrontTile(b.wallSide, mix(b.wallTop, 1.1)), i * 2 + 1, 1);
 });
+putTile(chestTile("#8b5a2b", "#c98d4e", "#f5b70a", "#f5b70a"), 6, 1);
+putTile(chestTile("#e0a10c", "#ffd75e", "#fff3c4", "#f5b70a"), 7, 1);
+putTile(chestTile("#8b6fe8", "#c4b0f5", "#f5b70a", "#f472b6"), 8, 1);
 
-// oggetti: torcia (col 6 riga 1 nella mini-griglia logica? no: riga 2)
-torchTile();
-coinTile();
-gemTile("#a78bfa");
-portalTile("#f5b70a");
+// riga 2: torcia (0), moneta (1), portale (2, contratto drawExit), gemma (3)
+putTile(torchTile(), 0, 2);
+putTile(coinTile(), 1, 2);
+putTile(portalTile("#f5b70a"), 2, 2);
+putTile(gemTile("#a78bfa"), 3, 2);
 
 mkdirSync(join(root, "assets"), { recursive: true });
 writeFileSync(join(root, "assets", "tiles.png"), encodePNG(atlas));
