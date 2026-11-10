@@ -117,10 +117,23 @@ function drawFloor(
     sx, sy, sx, sy + g.tw * S);
   if (solidAt(x, y + 1)) shade(sx, sy + g.tw * (1 - S), sx + g.tw, sy + g.tw,
     sx, sy + g.tw, sx, sy + g.tw * (1 - S));
+  ctx.fillStyle = "rgba(20,16,40,0.30)";
+  if (solidAt(x, y - 1)) ctx.fillRect(sx, sy, g.tw + 0.5, 2);
+  if (solidAt(x, y + 1)) ctx.fillRect(sx, sy + g.tw - 2, g.tw + 0.5, 2);
+  if (solidAt(x - 1, y)) ctx.fillRect(sx, sy, 2, g.tw);
+  if (solidAt(x + 1, y)) ctx.fillRect(sx + g.tw - 2, sy, 2, g.tw);
   if (solidAt(x - 1, y)) shade(sx, sy, sx + g.tw * S, sy + g.tw,
     sx, sy, sx, sy + g.tw);
   if (solidAt(x + 1, y)) shade(sx + g.tw * (1 - S), sy, sx + g.tw, sy + g.tw,
     sx, sy, sx + g.tw * (1 - S), sy + g.tw);
+  const v = hash2(x, y, 4242);
+  if (v < 0.16) {
+    ctx.fillStyle = "rgba(255,255,255,0.045)";
+    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw);
+  } else if (v > 0.84) {
+    ctx.fillStyle = "rgba(20,16,40,0.05)";
+    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw);
+  }
 }
 
 function drawWall(
