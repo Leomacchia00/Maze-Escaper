@@ -7,11 +7,11 @@ test("darknessForLevel: parte chiara e scurisce col livello", () => {
     const l20 = darknessForLevel(20);
     assert.ok(l1 < l5 && l5 < l20, "monotona crescente");
     assert.ok(l1 > 0.1, "livello 1 non completamente buio");
-    assert.ok(l20 <= 0.85, "cap al 85%");
+    assert.ok(l20 <= 0.92, "cap al 92%");
 });
 test("darknessForLevel: mai oltre il cap", () => {
     for (let lv = 1; lv <= 60; lv++) {
         const d = darknessForLevel(lv);
-        assert.ok(d >= 0.25 && d <= 0.85);
+        assert.ok(d >= 0.45 && d <= 0.92);
     }
 });

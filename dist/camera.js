@@ -1,6 +1,6 @@
 export const VISIBLE_TILES = 11;
 export function darknessForLevel(level) {
-    return Math.min(0.85, 0.25 + (level - 1) * 0.05);
+    return Math.min(0.92, 0.45 + (level - 1) * 0.06);
 }
 export const RISE_RATIO = 0.3;
 export const FRONT_RATIO = 0.42;

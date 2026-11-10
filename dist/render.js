@@ -313,7 +313,7 @@ function applyDarkness(ctx, g, d, state, dark, range) {
         octx.fillStyle = grad;
         octx.fillRect(cx - r, cy - r, r * 2, r * 2);
     };
-    cut(state.px, state.py, 3.4, 1);
+    cut(state.px, state.py, 2.6, 1);
     const pulse = 0.9 + 0.1 * Math.sin(Date.now() / 300);
     cut(d.exit.x + 0.5, d.exit.y + 0.5, 1.8 * pulse, 0.9);
     for (let y = range.y0; y <= range.y1; y++) {
@@ -323,7 +323,7 @@ function applyDarkness(ctx, g, d, state, dark, range) {
             if (hash2(x, y, 777) > 0.25)
                 continue;
             const flicker = 0.8 + 0.2 * Math.sin(Date.now() / 120 + x * 2.7 + y * 1.3);
-            cut(x + 0.5, y + 0.5, 2.4 * flicker, 0.95);
+            cut(x + 0.5, y + 0.5, 1.8 * flicker, 0.95);
         }
     }
     octx.globalCompositeOperation = "source-over";
