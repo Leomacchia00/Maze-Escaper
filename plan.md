@@ -61,11 +61,11 @@ run (1-3 min) → esplora dungeon a stanze → raccogli bottino (monete/gemme/ca
 | 0 | Buio + luci | Buio crescente per livello, torce/portale bucano la nebbia | ✅ fatto |
 | 1 | Feedback combattimento | hit-stop, knockback leggero, popup danno numerico | ⬜ prossimo |
 | 2 | HP giocatore / salute | 3 cuori, danno da contatto, cura dalle casse | ✅ fatto |
-| 3 | Boss | un boss ogni tot livelli (da definire meglio, decisione 5) | ⬜ rimandato |
+| 3 | Boss | un boss ogni tot livelli, nebbia che sale dal basso durante il duello (decisione 7) | ⬜ |
 | 4 | Fog 3 stati sulla mini-mappa | visibile / esplorato dim / mai visto | ⬜ |
 | 5 | Shop + sink monete | consumabili comprabili prima di scendere (decisione 3: sì) | ⬜ prossimo |
 | 6 | Pet idle (stile WellDiver) | pet che raccolgono monete offline, "amore" da feeding | ⬜ sì ma più avanti |
-| 7 | Prestige | restart con bonus quando conviene (regola del punto 7) | ⬜ |
+| 7 | Prestige | progressione lineare: bioma saturo → bioma successivo (decisione 5) | ⬜ |
 | 8 | Audio | resta synth Web Audio, da definire meglio più avanti (decisione 8) | ⏸ rinviato |
 | 9 | Stanze speciali | stanze riconoscibili (tesoro, trappola, segreto) nel generatore | ⬜ |
 | 10 | Polish grafico | juice, squash & stretch, particelle, transizioni bioma | ⬜ |
@@ -80,9 +80,9 @@ run (1-3 min) → esplora dungeon a stanze → raccogli bottino (monete/gemme/ca
 2. ~~HP giocatore~~ ✅ **Risposta: HP + aria** → 3 cuori, cura dalle casse (implementato).
 3. ~~Shop/consumabili~~ ✅ **Risposta: sì, con consumabili** → da implementare (prossimo).
 4. ~~Pet idle~~ ✅ **Risposta: sì, ma più avanti**.
-5. **Prestige**: vuoi un sistema di prestige (ricominciare con bonus) o per ora basta il progression lineare dei livelli?
+5. ~~Prestige~~ ✅ **Risposta: progressione lineare, niente reset** — quando il bioma è saturo si passa al bioma successivo (nuovo ambiente, nuovi nemici), senza ricominciare da zero.
 6. ~~Audio~~ ✅ **Risposta: non ci pensiamo più di tanto ora**, resta synth, da definire meglio più avanti.
-7. ~~Boss~~ ✅ **Risposta: un boss ogni tot livelli, ci pensiamo meglio più avanti**.
+7. ~~Boss~~ ✅ **Risposta: sì, un boss ogni tot livelli** — durante il duello sale nebbia velenosa dal basso (urgenza spaziale), il tipo di boss dipende dal bioma.
 8. ~~Crescita mappe~~ ✅ **Risposta: crescita mista** — aumenta e varia la difficoltà, non necessariamente la dimensione (mob più forti ⇒ mappe anche più piccole).
 9. ~~Nemici~~ ✅ **Risposta: patrol + chase + varietà** → implementato (slug/bat/wisp/brute con chase). Biomi-specifici da definire.
 10. **Mini-mappa**: vuoi anche sulla mini-mappa i 3 stati (visibile/esplorato/mai visto) o resta semplice?
