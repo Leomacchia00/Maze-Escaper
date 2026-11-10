@@ -10,7 +10,7 @@ export interface Cam {
 export const VISIBLE_TILES = 11;
 
 export function darknessForLevel(level: number): number {
-  return Math.min(0.92, 0.45 + (level - 1) * 0.06);
+  return Math.min(0.93, 0.55 + (level - 1) * 0.07);
 }
 
 export const RISE_RATIO = 0.3;
