@@ -1,5 +1,7 @@
 # Maze Escaper — Specifica di gioco (v1)
 
+> **Nota (v0.4):** il gioco è evoluto rispetto a questa specifica: niente più "punteggio/tempo" — oggi c'è la maschera con l'aria, le casse con bottino e le skill. Le sezioni §2-5 sono superate; restano validi i pillar (§1), i criteri di qualità (§9) e l'idea della bussola (§12). Per il futuro fare riferimento a **`docs/ROADMAP.md`**.
+
 Documento di base per lo sviluppo. Da usare come brief per l'agente di coding. La v1 è il **loop minimo onesto**: labirinto + timer + punteggio. Skill tree, oggetti speciali e donazioni entrano nelle fasi successive, ma la struttura va pensata per contenerli dal giorno uno.
 
 ## 1. Visione

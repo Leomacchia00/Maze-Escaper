@@ -30,7 +30,7 @@ Questo repo include skill vendorate in `skills/` (fonti e licenze in `skills/SOU
 - **Offline-first**: nessuna chiamata di rete dal gioco.
 - **Un solo branch**: commit diretti su `main`, niente branch task né PR.
 - Test: `npm test` deve passare (28+ test) prima di ogni push.
-- La specifica di gioco è `docs/SPEC.md`: leggerla prima di decisioni di design.
+- La specifica storica è `docs/SPEC.md` (parzialmente superata) e la roadmap delle fasi future è `docs/ROADMAP.md`: leggerli prima di decisioni di design.
 
 ## Come usare le skill
 
