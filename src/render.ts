@@ -88,7 +88,8 @@ function biomeIndex(b: Biome): number {
 }
 
 function drawFloor(
-  ctx: CanvasRenderingContext2D, g: Cam, b: Biome, x: number, y: number
+  ctx: CanvasRenderingContext2D, g: Cam, b: Biome,
+  x: number, y: number, d: Dungeon
 ): void {
   const sx = g.ox + x * g.tw;
   const sy = g.oy + y * g.tw;
@@ -100,6 +101,26 @@ function drawFloor(
     ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
     ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
   }
+  const solidAt = (xx: number, yy: number): boolean =>
+    xx < 0 || yy < 0 || xx >= d.size || yy >= d.size ||
+    d.solid[yy * d.size + xx] === 1;
+  const S = 0.28;
+  const shade = (x0: number, y0: number, x1: number, y1: number,
+                 gx0: number, gy0: number, gx1: number, gy1: number): void => {
+    const grad = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+    grad.addColorStop(0, "rgba(20,16,40,0.30)");
+    grad.addColorStop(1, "rgba(20,16,40,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+  };
+  if (solidAt(x, y - 1)) shade(sx, sy, sx + g.tw, sy + g.tw * S,
+    sx, sy, sx, sy + g.tw * S);
+  if (solidAt(x, y + 1)) shade(sx, sy + g.tw * (1 - S), sx + g.tw, sy + g.tw,
+    sx, sy + g.tw, sx, sy + g.tw * (1 - S));
+  if (solidAt(x - 1, y)) shade(sx, sy, sx + g.tw * S, sy + g.tw,
+    sx, sy, sx, sy + g.tw);
+  if (solidAt(x + 1, y)) shade(sx + g.tw * (1 - S), sy, sx + g.tw, sy + g.tw,
+    sx, sy, sx + g.tw * (1 - S), sy + g.tw);
 }
 
 function drawWall(
@@ -494,7 +515,7 @@ export function drawRun(
   for (let y = range.y0; y <= range.y1; y++) {
     for (let x = range.x0; x <= range.x1; x++) {
       if (d.solid[y * n + x] === 1) drawWall(ctx, g, b, x, y);
-      else drawFloor(ctx, g, b, x, y);
+      else drawFloor(ctx, g, b, x, y, d);
     }
   }
 

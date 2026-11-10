@@ -51,7 +51,7 @@ function biomeIndex(b) {
     const i = BIOMES.indexOf(b);
     return i < 0 ? 0 : i;
 }
-function drawFloor(ctx, g, b, x, y) {
+function drawFloor(ctx, g, b, x, y, d) {
     const sx = g.ox + x * g.tw;
     const sy = g.oy + y * g.tw;
     if (atlasReady()) {
@@ -63,6 +63,24 @@ function drawFloor(ctx, g, b, x, y) {
         ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
         ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
     }
+    const solidAt = (xx, yy) => xx < 0 || yy < 0 || xx >= d.size || yy >= d.size ||
+        d.solid[yy * d.size + xx] === 1;
+    const S = 0.28;
+    const shade = (x0, y0, x1, y1, gx0, gy0, gx1, gy1) => {
+        const grad = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+        grad.addColorStop(0, "rgba(20,16,40,0.30)");
+        grad.addColorStop(1, "rgba(20,16,40,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+    };
+    if (solidAt(x, y - 1))
+        shade(sx, sy, sx + g.tw, sy + g.tw * S, sx, sy, sx, sy + g.tw * S);
+    if (solidAt(x, y + 1))
+        shade(sx, sy + g.tw * (1 - S), sx + g.tw, sy + g.tw, sx, sy + g.tw, sx, sy + g.tw * (1 - S));
+    if (solidAt(x - 1, y))
+        shade(sx, sy, sx + g.tw * S, sy + g.tw, sx, sy, sx, sy + g.tw);
+    if (solidAt(x + 1, y))
+        shade(sx + g.tw * (1 - S), sy, sx + g.tw, sy + g.tw, sx, sy, sx + g.tw * (1 - S), sy + g.tw);
 }
 function drawWall(ctx, g, b, x, y) {
     const sx = g.ox + x * g.tw;
@@ -404,7 +422,7 @@ export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
             if (d.solid[y * n + x] === 1)
                 drawWall(ctx, g, b, x, y);
             else
-                drawFloor(ctx, g, b, x, y);
+                drawFloor(ctx, g, b, x, y, d);
         }
     }
     if (seen[d.exit.y * n + d.exit.x] === 1)
