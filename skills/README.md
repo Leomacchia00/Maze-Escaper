@@ -18,6 +18,7 @@ Raccolta di skill vendorate nel repo per gli agenti di sviluppo. Vedi `AGENTS.md
 - `game-feel` — juice, feedback, risposta dell'input
 - `game-ui-ux` — menu, HUD, schermate di gioco
 - `procedural-gen` — generazione procedurale (labirinti)
+- `tilesets` — tileset e autotiling: atlas, terrain sets, dual grid, transizioni di terreno
 - `save-systems` — persistenza (localStorage)
 - `input-systems` — tastiera e touch/swipe
 - `performance-optimization` — prestazioni canvas e loop

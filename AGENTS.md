@@ -15,6 +15,7 @@ Questo repo include skill vendorate in `skills/` (fonti e licenze in `skills/SOU
 | Review di una schermata | `skills/interface-review/SKILL.md` |
 | Rendering canvas (render.ts), effetti, animazioni di gioco | `skills/game-engine/SKILL.md` + `skills/game-feel/SKILL.md` |
 | Generazione labirinti, algoritmi procedurali (maze.ts) | `skills/procedural-gen/SKILL.md` |
+| Tileset, atlas, transizioni di terreno, autotiling | `skills/tilesets/SKILL.md` |
 | Menu, HUD, schermate di gioco | `skills/game-ui-ux/SKILL.md` |
 | Salvataggio/persistenza (storage.ts, localStorage) | `skills/save-systems/SKILL.md` |
 | Input tastiera/swipe (main.ts) | `skills/input-systems/SKILL.md` |
