@@ -2,6 +2,8 @@ import { Dungeon, generateDungeon, dungeonSizeForLevel, roomCountForLevel, isSol
 import { Chest, placeChests, chestCountForLevel } from "./chests.js";
 import { Rng, mulberry32 } from "./rng.js";
 import { Owned, skillEffects } from "./skills.js";
+import { Pickup, placePickups, pickupCountForLevel } from "./pickups.js";
+import { Enemy, spawnEnemies, enemyCountForLevel } from "./enemies.js";
 
 export type RunStatus = "ready" | "running" | "won" | "lost";
 
@@ -24,6 +26,8 @@ export interface RunState {
   chestOpenCount: number;
   speedMult: number;
   coinMult: number;
+  pickups: Pickup[];
+  enemies: Enemy[];
 }
 
 export const PLAYER_RADIUS = 0.3;
@@ -42,6 +46,12 @@ export function createRun(level: number, seed: number, skills: Owned = {}): RunS
   const fx = skillEffects(skills);
   const baseAir = baseAirForLevel(level, fx.airMult);
   const chests = placeChests(dungeon, dungeon.entrance, dungeon.exit, chestCountForLevel(level, roomCount), rng);
+  const taken = new Set<number>();
+  taken.add(dungeon.entrance.y * size + dungeon.entrance.x);
+  taken.add(dungeon.exit.y * size + dungeon.exit.x);
+  for (const c of chests) taken.add(Math.floor(c.x) + Math.floor(c.y) * size);
+  const pickups = placePickups(dungeon, taken, pickupCountForLevel(level), rng);
+  const enemies = spawnEnemies(dungeon, dungeon.entrance, enemyCountForLevel(level), rng);
   const visited = new Uint8Array(size * size);
   visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
   return {
@@ -57,6 +67,8 @@ export function createRun(level: number, seed: number, skills: Owned = {}): RunS
     visited,
     visitedCount: 1,
     chests,
+    pickups,
+    enemies,
     coins: 0,
     treasures: [],
     donations: [],

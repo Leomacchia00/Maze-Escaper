@@ -1,6 +1,13 @@
 import { Dungeon } from "./dungeon.js";
 import { Cam, cameraFor, seenMask, visibleRange, CellRange } from "./camera.js";
 import { RunState } from "./game.js";
+import { Enemy } from "./enemies.js";
+
+function hash2(x: number, y: number, seed: number): number {
+  let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 1274126177)) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
 
 export interface Biome {
   name: string;
@@ -256,6 +263,92 @@ function drawMiniMap(
   ctx.restore();
 }
 
+const PICKUP_COLS: Record<string, number> = { coin: 1, gem: 3 };
+
+function drawPickups(
+  ctx: CanvasRenderingContext2D,
+  g: Cam,
+  state: RunState,
+  range: CellRange
+): void {
+  const t = Date.now();
+  for (const p of state.pickups) {
+    if (p.taken) continue;
+    if (p.x < range.x0 || p.x > range.x1 || p.y < range.y0 || p.y > range.y1) continue;
+    const bob = Math.sin(t / 300 + p.x * 3.7) * g.tw * 0.06;
+    const s = g.tw * 0.5;
+    const col = PICKUP_COLS[p.kind] ?? 1;
+    const cx = g.ox + p.x * g.tw;
+    const cy = g.oy + p.y * g.tw + bob;
+    ctx.drawImage(atlas, col * 48, 96, 48, 48, cx - s / 2, cy - s / 2, s, s);
+  }
+}
+
+const ENEMY_COLORS: Record<string, string> = {
+  slug: "#8bc34a",
+  bat: "#7c5cbf",
+  wisp: "#67e8f9",
+};
+
+function drawEnemies(
+  ctx: CanvasRenderingContext2D,
+  g: Cam,
+  enemies: Enemy[],
+  range: CellRange
+): void {
+  const t = Date.now();
+  for (const e of enemies) {
+    if (e.x < range.x0 || e.x > range.x1 || e.y < range.y0 || e.y > range.y1) continue;
+    const cx = g.ox + e.x * g.tw;
+    const cy = g.oy + e.y * g.tw;
+    const wob = Math.sin(t / 200 + e.x * 5) * g.tw * 0.04;
+    const r = g.tw * (e.kind === "slug" ? 0.3 : 0.24);
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.9, r * 0.8, r * 0.3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = ENEMY_COLORS[e.kind] ?? "#f87171";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + wob, r, r * (e.kind === "slug" ? 0.7 : 0.9), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy + wob - r * 0.2, r * 0.18, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.3, cy + wob - r * 0.2, r * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1e293b";
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.3, cy + wob - r * 0.2, r * 0.08, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.3, cy + wob - r * 0.2, r * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawTorches(
+  ctx: CanvasRenderingContext2D,
+  g: Cam,
+  d: Dungeon,
+  range: CellRange
+): void {
+  const t = Date.now();
+  for (let y = range.y0; y <= range.y1; y++) {
+    for (let x = range.x0; x <= range.x1; x++) {
+      if (d.solid[y * d.size + x] !== 1) continue;
+      if (hash2(x, y, 777) > 0.25) continue;
+      const cx = g.ox + (x + 0.5) * g.tw;
+      const cy = g.oy + (y + 0.85) * g.tw;
+      const flicker = 0.75 + 0.25 * Math.sin(t / 120 + x * 2.7 + y * 1.3);
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, g.tw * 0.9);
+      glow.addColorStop(0, `rgba(255,200,90,${0.3 * flicker})`);
+      glow.addColorStop(1, "rgba(255,200,90,0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(cx - g.tw, cy - g.tw, g.tw * 2, g.tw * 2);
+      const s = g.tw * 0.6;
+      ctx.drawImage(atlas, 0, 96, 48, 48, cx - s / 2, cy - s / 2, s, s);
+    }
+  }
+}
+
 export function drawRun(
   canvas: HTMLCanvasElement,
   state: RunState,
@@ -296,7 +389,10 @@ export function drawRun(
     if (!c.opened && seen[c.y * n + c.x] === 1) drawChest(ctx, g, c.x, c.y, c.kind);
   }
 
+  drawPickups(ctx, g, state, range);
+  drawEnemies(ctx, g, state.enemies, range);
   drawPlayer(ctx, g, state);
+  drawTorches(ctx, g, d, range);
 
   drawPopups(ctx, g, fx);
   ctx.restore();

@@ -1,4 +1,7 @@
 import { createRun, movePlayer, tick, pickupChests, payout } from "./game.js";
+import { pickupAt } from "./pickups.js";
+import { moveEnemies } from "./enemies.js";
+import { playCoin, playChest, playClick, playHurt, playWin, playLose, resumeAudio } from "./audio.js";
 import { drawRun } from "./render.js";
 import { biomeForLevel } from "./render.js";
 import { queryUI } from "./ui.js";
@@ -53,6 +56,7 @@ class App {
         this.ended = false;
         this.paused = false;
         this.lastHud = { air: -1, coins: -1 };
+        this.hurtCooldown = 0;
         this.loop = (ts) => {
             const dt = this.lastTs !== null ? Math.min((ts - this.lastTs) / 1000, 0.05) : 0;
             this.lastTs = ts;
@@ -67,13 +71,17 @@ class App {
                 const coinsBefore = this.run.coins;
                 this.run = movePlayer(this.run, ix, iy, dt);
                 this.run = tick(this.run, dt);
+                this.run.enemies = moveEnemies(this.run.enemies, this.run.dungeon, dt);
                 this.run = pickupChests(this.run);
+                this.collectPickups();
+                this.checkEnemyCollisions(dt);
                 if (this.run.chestOpenCount > before) {
                     const chest = this.run.chests.find((c) => c.opened && c.id === before);
                     if (chest) {
                         const gained = this.run.coins - coinsBefore;
                         const popup = { x: chest.x, y: chest.y, text: `+${gained}💰`, age: 0 };
                         this.fx.popups.push(popup);
+                        playChest();
                     }
                 }
                 this.fx.shake = Math.max(0, this.fx.shake - dt * 1.5);
@@ -92,16 +100,17 @@ class App {
         };
         this.ui = queryUI(doc);
         this.save = loadSave();
-        doc.getElementById("btn-play")?.addEventListener("click", () => this.start());
-        doc.getElementById("btn-menu")?.addEventListener("click", () => this.showHome());
-        doc.getElementById("btn-skills")?.addEventListener("click", () => this.showSkills());
-        doc.getElementById("btn-skills-back")?.addEventListener("click", () => this.showHome());
+        doc.getElementById("btn-play")?.addEventListener("click", () => { playClick(); this.start(); });
+        doc.getElementById("btn-menu")?.addEventListener("click", () => { playClick(); this.showHome(); });
+        doc.getElementById("btn-skills")?.addEventListener("click", () => { playClick(); this.showSkills(); });
+        doc.getElementById("btn-skills-back")?.addEventListener("click", () => { playClick(); this.showHome(); });
         this.ui.skillTree.addEventListener("click", (e) => this.onTreeClick(e));
-        doc.getElementById("btn-retry")?.addEventListener("click", () => this.start());
-        doc.getElementById("btn-pause")?.addEventListener("click", () => this.togglePause());
-        doc.getElementById("btn-resume")?.addEventListener("click", () => this.resume());
-        doc.getElementById("btn-abandon")?.addEventListener("click", () => this.abandonRun());
+        doc.getElementById("btn-retry")?.addEventListener("click", () => { playClick(); this.start(); });
+        doc.getElementById("btn-pause")?.addEventListener("click", () => { playClick(); this.togglePause(); });
+        doc.getElementById("btn-resume")?.addEventListener("click", () => { playClick(); this.resume(); });
+        doc.getElementById("btn-abandon")?.addEventListener("click", () => { playClick(); this.abandonRun(); });
         doc.addEventListener("keydown", (e) => {
+            resumeAudio();
             const k = e.key.toLowerCase();
             if (k === "escape" && this.run && !this.ended) {
                 e.preventDefault();
@@ -117,6 +126,7 @@ class App {
         const canvas = doc.getElementById("maze-canvas");
         if (canvas) {
             canvas.addEventListener("pointerdown", (e) => {
+                resumeAudio();
                 this.joyStart = { x: e.clientX, y: e.clientY };
                 canvas.setPointerCapture(e.pointerId);
             });
@@ -249,6 +259,10 @@ class App {
         if (!this.run)
             return;
         const won = this.run.status === "won";
+        if (won)
+            playWin();
+        else
+            playLose();
         const got = payout(this.run);
         this.save.coins += got.coins;
         if (won)
@@ -269,6 +283,34 @@ class App {
             this.ui.screens.run.hidden = true;
             this.ui.screens.result.hidden = false;
         }, won ? 600 : 900);
+    }
+    collectPickups() {
+        if (!this.run)
+            return;
+        const hit = pickupAt(this.run, this.run.pickups);
+        if (!hit)
+            return;
+        hit.taken = true;
+        this.run.coins += hit.coins;
+        playCoin();
+        this.fx.popups.push({ x: hit.x, y: hit.y, text: `+${hit.coins}\ud83d\udcb0`, age: 0 });
+    }
+    checkEnemyCollisions(dt) {
+        if (!this.run)
+            return;
+        if (this.hurtCooldown > 0) {
+            this.hurtCooldown -= dt;
+            return;
+        }
+        for (const e of this.run.enemies) {
+            if (Math.hypot(e.x - this.run.px, e.y - this.run.py) < 0.6) {
+                this.run.air = Math.max(1, this.run.air - 6);
+                this.fx.shake = 1;
+                playHurt();
+                this.hurtCooldown = 1.2;
+                break;
+            }
+        }
     }
     render() {
         if (!this.run)
