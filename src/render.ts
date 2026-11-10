@@ -2,7 +2,9 @@ import { Dungeon } from "./dungeon.js";
 import { Cam, cameraFor, seenMask, visibleRange, CellRange, darknessForLevel, isLitNow } from "./camera.js";
 import { RunState } from "./game.js";
 import { Enemy } from "./enemies.js";
-import { neighborMask, CORNER_RADIUS, EDGE_SHADOW } from "./autotile.js";
+import { neighborMask, NeighborMask, CORNER_RADIUS, EDGE_SHADOW } from "./autotile.js";
+
+const GROUT = "#241d38";
 
 function hash2(x: number, y: number, seed: number): number {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 1274126177)) | 0;
@@ -95,15 +97,30 @@ function drawFloor(
   const sx = g.ox + x * g.tw;
   const sy = g.oy + y * g.tw;
   const tw = g.tw;
+  const m = neighborMask(d, x, y);
+  const r = CORNER_RADIUS * tw;
+  ctx.fillStyle = GROUT;
+  ctx.fillRect(sx, sy, tw + 0.5, tw + 0.5);
+  const e = 0.5;
+  const x0 = sx - (m.w ? 0 : e);
+  const y0 = sy - (m.n ? 0 : e);
+  const x1 = sx + tw + (m.e ? 0 : e);
+  const y1 = sy + tw + (m.s ? 0 : e);
+  const rNW = m.n || m.w || m.nw ? r : 0;
+  const rNE = m.n || m.e || m.ne ? r : 0;
+  const rSE = m.s || m.e || m.se ? r : 0;
+  const rSW = m.s || m.w || m.sw ? r : 0;
+  ctx.save();
+  tilePath(ctx, x0, y0, x1 - x0, y1 - y0, rNW, rNE, rSE, rSW);
+  ctx.clip();
   if (atlasReady()) {
     const bi = biomeIndex(b);
     const col = (x + y) % 2 === 0 ? bi * 2 : bi * 2 + 1;
-    ctx.drawImage(atlas, col * 48, 0, 48, 48, sx, sy, tw, tw);
+    ctx.drawImage(atlas, col * 48, 0, 48, 48, x0, y0, x1 - x0, y1 - y0);
   } else {
     ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
-    ctx.fillRect(sx, sy, tw + 0.5, tw + 0.5);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
-  const m = neighborMask(d, x, y);
   const depth = EDGE_SHADOW * tw;
   if (m.n) fadeV(ctx, sx, sy, tw, depth, true);
   if (m.s) fadeV(ctx, sx, sy + tw - depth, tw, depth, false);
@@ -114,20 +131,32 @@ function drawFloor(
   if (m.s) ctx.fillRect(sx, sy + tw - 2, tw + 0.5, 2);
   if (m.w) ctx.fillRect(sx, sy, 2, tw);
   if (m.e) ctx.fillRect(sx + tw - 2, sy, 2, tw);
-  const r = CORNER_RADIUS * tw;
-  ctx.fillStyle = "rgba(20,16,40,0.30)";
-  if (m.nw && !m.n && !m.w) cornerArc(ctx, sx, sy, r, 0);
-  if (m.ne && !m.n && !m.e) cornerArc(ctx, sx + tw, sy, r, Math.PI / 2);
-  if (m.se && !m.s && !m.e) cornerArc(ctx, sx + tw, sy + tw, r, Math.PI);
-  if (m.sw && !m.s && !m.w) cornerArc(ctx, sx, sy + tw, r, (3 * Math.PI) / 2);
   const v = hash2(x, y, 4242);
   if (v < 0.16) {
     ctx.fillStyle = "rgba(255,255,255,0.045)";
-    ctx.fillRect(sx, sy, tw + 0.5, tw);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   } else if (v > 0.84) {
     ctx.fillStyle = "rgba(20,16,40,0.05)";
-    ctx.fillRect(sx, sy, tw + 0.5, tw);
+    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   }
+  ctx.restore();
+}
+
+function tilePath(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number,
+  rTL: number, rTR: number, rBR: number, rBL: number
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + rTL, y);
+  ctx.lineTo(x + w - rTR, y);
+  if (rTR > 0) ctx.arc(x + w - rTR, y + rTR, rTR, -Math.PI / 2, 0);
+  ctx.lineTo(x + w, y + h - rBR);
+  if (rBR > 0) ctx.arc(x + w - rBR, y + h - rBR, rBR, 0, Math.PI / 2);
+  ctx.lineTo(x + rBL, y + h);
+  if (rBL > 0) ctx.arc(x + rBL, y + h - rBL, rBL, Math.PI / 2, Math.PI);
+  ctx.lineTo(x, y + rTL);
+  if (rTL > 0) ctx.arc(x + rTL, y + rTL, rTL, Math.PI, Math.PI * 1.5);
+  ctx.closePath();
 }
 
 function fadeV(
@@ -150,30 +179,44 @@ function fadeH(
   ctx.fillRect(x, y, w, h);
 }
 
-function cornerArc(
-  ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, start: number
-): void {
-  ctx.beginPath();
-  ctx.moveTo(cx, cy);
-  ctx.arc(cx, cy, r, start, start + Math.PI / 2);
-  ctx.closePath();
-  ctx.fill();
-}
-
 function drawWall(
-  ctx: CanvasRenderingContext2D, g: Cam, b: Biome, x: number, y: number
+  ctx: CanvasRenderingContext2D, g: Cam, b: Biome, d: Dungeon, x: number, y: number
 ): void {
   const sx = g.ox + x * g.tw;
   const sy = g.oy + y * g.tw;
+  const m = neighborMask(d, x, y);
+  const r = CORNER_RADIUS * g.tw;
+  const e = 0.5;
+  const topY = sy - g.rise;
+  const topH = g.tw - g.frontH + g.rise;
+  const frontY = sy + g.tw - g.frontH;
+  const rNW = !m.n && !m.nw && !m.w ? r : 0;
+  const rNE = !m.n && !m.ne && !m.e ? r : 0;
+  const rSW = !m.s && !m.sw && !m.w ? r : 0;
+  const rSE = !m.s && !m.se && !m.e ? r : 0;
+  ctx.save();
+  tilePath(
+    ctx, sx - (m.w ? e : 0), topY, g.tw + (m.w ? e : 0) + (m.e ? e : 0), topH,
+    rNW, rNE, 0, 0
+  );
+  ctx.clip();
   if (atlasReady()) {
-    ctx.drawImage(atlas, b.wallCol * 48, 48, 48, 48, sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
-    ctx.drawImage(atlas, (b.wallCol + 1) * 48, 48, 48, 48, sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
+    ctx.drawImage(atlas, b.wallCol * 48, 48, 48, 48, sx - (m.w ? e : 0), topY, g.tw + (m.e ? e : 0) + (m.w ? e : 0), topH);
   } else {
     ctx.fillStyle = b.wallTop;
-    ctx.fillRect(sx, sy - g.rise, g.tw + 0.5, g.tw - g.frontH + g.rise);
-    ctx.fillStyle = b.wallSide;
-    ctx.fillRect(sx, sy + g.tw - g.frontH, g.tw + 0.5, g.frontH);
+    ctx.fillRect(sx, topY, g.tw + 0.5, topH);
   }
+  ctx.restore();
+  ctx.save();
+  tilePath(ctx, sx, frontY, g.tw + (m.e ? e : 0), g.frontH, 0, 0, rSE, rSW);
+  ctx.clip();
+  if (atlasReady()) {
+    ctx.drawImage(atlas, (b.wallCol + 1) * 48, 48, 48, 48, sx, frontY, g.tw + (m.e ? e : 0), g.frontH);
+  } else {
+    ctx.fillStyle = b.wallSide;
+    ctx.fillRect(sx, frontY, g.tw + 0.5, g.frontH);
+  }
+  ctx.restore();
 }
 
 function drawExit(
@@ -551,7 +594,7 @@ export function drawRun(
 
   for (let y = range.y0; y <= range.y1; y++) {
     for (let x = range.x0; x <= range.x1; x++) {
-      if (d.solid[y * n + x] === 1) drawWall(ctx, g, b, x, y);
+      if (d.solid[y * n + x] === 1) drawWall(ctx, g, b, d, x, y);
       else drawFloor(ctx, g, b, x, y, d);
     }
   }
