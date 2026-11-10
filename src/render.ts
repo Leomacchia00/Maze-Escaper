@@ -2,6 +2,7 @@ import { Dungeon } from "./dungeon.js";
 import { Cam, cameraFor, seenMask, visibleRange, CellRange, darknessForLevel, isLitNow } from "./camera.js";
 import { RunState } from "./game.js";
 import { Enemy } from "./enemies.js";
+import { neighborMask, CORNER_RADIUS, EDGE_SHADOW } from "./autotile.js";
 
 function hash2(x: number, y: number, seed: number): number {
   let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 1274126177)) | 0;
@@ -93,47 +94,70 @@ function drawFloor(
 ): void {
   const sx = g.ox + x * g.tw;
   const sy = g.oy + y * g.tw;
+  const tw = g.tw;
   if (atlasReady()) {
     const bi = biomeIndex(b);
     const col = (x + y) % 2 === 0 ? bi * 2 : bi * 2 + 1;
-    ctx.drawImage(atlas, col * 48, 0, 48, 48, sx, sy, g.tw, g.tw);
+    ctx.drawImage(atlas, col * 48, 0, 48, 48, sx, sy, tw, tw);
   } else {
     ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
-    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
+    ctx.fillRect(sx, sy, tw + 0.5, tw + 0.5);
   }
-  const solidAt = (xx: number, yy: number): boolean =>
-    xx < 0 || yy < 0 || xx >= d.size || yy >= d.size ||
-    d.solid[yy * d.size + xx] === 1;
-  const S = 0.28;
-  const shade = (x0: number, y0: number, x1: number, y1: number,
-                 gx0: number, gy0: number, gx1: number, gy1: number): void => {
-    const grad = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
-    grad.addColorStop(0, "rgba(20,16,40,0.30)");
-    grad.addColorStop(1, "rgba(20,16,40,0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
-  };
-  if (solidAt(x, y - 1)) shade(sx, sy, sx + g.tw, sy + g.tw * S,
-    sx, sy, sx, sy + g.tw * S);
-  if (solidAt(x, y + 1)) shade(sx, sy + g.tw * (1 - S), sx + g.tw, sy + g.tw,
-    sx, sy + g.tw, sx, sy + g.tw * (1 - S));
+  const m = neighborMask(d, x, y);
+  const depth = EDGE_SHADOW * tw;
+  if (m.n) fadeV(ctx, sx, sy, tw, depth, true);
+  if (m.s) fadeV(ctx, sx, sy + tw - depth, tw, depth, false);
+  if (m.w) fadeH(ctx, sx, sy, depth, tw, true);
+  if (m.e) fadeH(ctx, sx + tw - depth, sy, depth, tw, false);
   ctx.fillStyle = "rgba(20,16,40,0.30)";
-  if (solidAt(x, y - 1)) ctx.fillRect(sx, sy, g.tw + 0.5, 2);
-  if (solidAt(x, y + 1)) ctx.fillRect(sx, sy + g.tw - 2, g.tw + 0.5, 2);
-  if (solidAt(x - 1, y)) ctx.fillRect(sx, sy, 2, g.tw);
-  if (solidAt(x + 1, y)) ctx.fillRect(sx + g.tw - 2, sy, 2, g.tw);
-  if (solidAt(x - 1, y)) shade(sx, sy, sx + g.tw * S, sy + g.tw,
-    sx, sy, sx, sy + g.tw);
-  if (solidAt(x + 1, y)) shade(sx + g.tw * (1 - S), sy, sx + g.tw, sy + g.tw,
-    sx, sy, sx + g.tw * (1 - S), sy + g.tw);
+  if (m.n) ctx.fillRect(sx, sy, tw + 0.5, 2);
+  if (m.s) ctx.fillRect(sx, sy + tw - 2, tw + 0.5, 2);
+  if (m.w) ctx.fillRect(sx, sy, 2, tw);
+  if (m.e) ctx.fillRect(sx + tw - 2, sy, 2, tw);
+  const r = CORNER_RADIUS * tw;
+  ctx.fillStyle = "rgba(20,16,40,0.30)";
+  if (m.nw && !m.n && !m.w) cornerArc(ctx, sx, sy, r, 0);
+  if (m.ne && !m.n && !m.e) cornerArc(ctx, sx + tw, sy, r, Math.PI / 2);
+  if (m.se && !m.s && !m.e) cornerArc(ctx, sx + tw, sy + tw, r, Math.PI);
+  if (m.sw && !m.s && !m.w) cornerArc(ctx, sx, sy + tw, r, (3 * Math.PI) / 2);
   const v = hash2(x, y, 4242);
   if (v < 0.16) {
     ctx.fillStyle = "rgba(255,255,255,0.045)";
-    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw);
+    ctx.fillRect(sx, sy, tw + 0.5, tw);
   } else if (v > 0.84) {
     ctx.fillStyle = "rgba(20,16,40,0.05)";
-    ctx.fillRect(sx, sy, g.tw + 0.5, g.tw);
+    ctx.fillRect(sx, sy, tw + 0.5, tw);
   }
+}
+
+function fadeV(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fromTop: boolean
+): void {
+  const grad = ctx.createLinearGradient(0, fromTop ? y : y + h, 0, fromTop ? y + h : y);
+  grad.addColorStop(0, "rgba(20,16,40,0.30)");
+  grad.addColorStop(1, "rgba(20,16,40,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+}
+
+function fadeH(
+  ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fromLeft: boolean
+): void {
+  const grad = ctx.createLinearGradient(fromLeft ? x : x + w, 0, fromLeft ? x + w : x, 0);
+  grad.addColorStop(0, "rgba(20,16,40,0.30)");
+  grad.addColorStop(1, "rgba(20,16,40,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+}
+
+function cornerArc(
+  ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, start: number
+): void {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, r, start, start + Math.PI / 2);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawWall(
