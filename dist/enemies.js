@@ -1,5 +1,15 @@
 import { pick } from "./rng.js";
 import { isSolid } from "./dungeon.js";
+export const ENEMY_HP = {
+    slug: 3,
+    bat: 1,
+    wisp: 2,
+};
+export const ENEMY_BOUNTY = {
+    slug: 3,
+    bat: 2,
+    wisp: 4,
+};
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 export function enemyCountForLevel(level) {
     return Math.min(10, 2 + Math.floor(level / 2));
@@ -26,13 +36,17 @@ export function spawnEnemies(d, entrance, count, rng) {
     for (let i = 0; i < Math.min(count, free.length); i++) {
         const [cx, cy] = free[i];
         const dir = pick(rng, DIRS);
+        const kind = kindForLevel(Math.floor(rng() * 1000), rng);
+        const hp = ENEMY_HP[kind];
         enemies.push({
             x: cx + 0.5,
             y: cy + 0.5,
             dx: dir[0],
             dy: dir[1],
             speed: 1.2 + rng() * 1.0,
-            kind: kindForLevel(Math.floor(rng() * 1000), rng),
+            kind,
+            hp,
+            maxHp: hp,
         });
     }
     return enemies;

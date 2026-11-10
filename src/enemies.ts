@@ -10,7 +10,21 @@ export interface Enemy {
   dy: number;
   speed: number;
   kind: EnemyKind;
+  hp: number;
+  maxHp: number;
 }
+
+export const ENEMY_HP: Record<EnemyKind, number> = {
+  slug: 3,
+  bat: 1,
+  wisp: 2,
+};
+
+export const ENEMY_BOUNTY: Record<EnemyKind, number> = {
+  slug: 3,
+  bat: 2,
+  wisp: 4,
+};
 
 const DIRS: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -42,13 +56,17 @@ export function spawnEnemies(
   for (let i = 0; i < Math.min(count, free.length); i++) {
     const [cx, cy] = free[i];
     const dir = pick(rng, DIRS);
+    const kind = kindForLevel(Math.floor(rng() * 1000), rng);
+    const hp = ENEMY_HP[kind];
     enemies.push({
       x: cx + 0.5,
       y: cy + 0.5,
       dx: dir[0],
       dy: dir[1],
       speed: 1.2 + rng() * 1.0,
-      kind: kindForLevel(Math.floor(rng() * 1000), rng),
+      kind,
+      hp,
+      maxHp: hp,
     });
   }
   return enemies;

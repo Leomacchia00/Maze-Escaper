@@ -214,7 +214,7 @@ function drawPickups(ctx, g, state, range) {
         if (p.x < range.x0 || p.x > range.x1 || p.y < range.y0 || p.y > range.y1)
             continue;
         const bob = Math.sin(t / 300 + p.x * 3.7) * g.tw * 0.06;
-        const s = g.tw * 0.5;
+        const s = g.tw * 0.68;
         const col = PICKUP_COLS[p.kind] ?? 1;
         const cx = g.ox + p.x * g.tw;
         const cy = g.oy + p.y * g.tw + bob;
@@ -243,6 +243,15 @@ function drawEnemies(ctx, g, enemies, range) {
         ctx.beginPath();
         ctx.ellipse(cx, cy + wob, r, r * (e.kind === "slug" ? 0.7 : 0.9), 0, 0, Math.PI * 2);
         ctx.fill();
+        if (e.hp < e.maxHp) {
+            const bw = r * 1.6;
+            const bx = cx - bw / 2;
+            const by = cy - r * 1.5;
+            ctx.fillStyle = "rgba(0,0,0,0.35)";
+            ctx.fillRect(bx, by, bw, 4);
+            ctx.fillStyle = "#f87171";
+            ctx.fillRect(bx, by, (bw * e.hp) / e.maxHp, 4);
+        }
         ctx.fillStyle = "#ffffff";
         ctx.beginPath();
         ctx.arc(cx - r * 0.3, cy + wob - r * 0.2, r * 0.18, 0, Math.PI * 2);

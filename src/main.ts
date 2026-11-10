@@ -1,7 +1,8 @@
 import { RunState, createRun, movePlayer, tick, pickupChests, payout } from "./game.js";
 import { pickupAt } from "./pickups.js";
-import { moveEnemies } from "./enemies.js";
-import { playCoin, playChest, playClick, playHurt, playWin, playLose, resumeAudio } from "./audio.js";
+import { moveEnemies, ENEMY_BOUNTY } from "./enemies.js";
+import type { Enemy } from "./enemies.js";
+import { playCoin, playChest, playClick, playHurt, playSword, playWin, playLose, resumeAudio } from "./audio.js";
 import { drawRun, Fx, Popup } from "./render.js";
 import { biomeForLevel } from "./render.js";
 import { queryUI, UIRefs } from "./ui.js";
@@ -65,6 +66,7 @@ class App {
   private ended = false;
   private paused = false;
   private lastHud = { air: -1, coins: -1 };
+  private attackCd = 0;
   private hurtCooldown = 0;
 
   constructor(doc: Document) {
@@ -79,12 +81,19 @@ class App {
     doc.getElementById("btn-pause")?.addEventListener("click", () => { playClick(); this.togglePause(); });
     doc.getElementById("btn-resume")?.addEventListener("click", () => { playClick(); this.resume(); });
     doc.getElementById("btn-abandon")?.addEventListener("click", () => { playClick(); this.abandonRun(); });
+    doc.getElementById("btn-attack")?.addEventListener("click", () => this.attack());
+    doc.getElementById("btn-attack-big")?.addEventListener("click", () => this.attack());
     doc.addEventListener("keydown", (e) => {
       resumeAudio();
       const k = e.key.toLowerCase();
       if (k === "escape" && this.run && !this.ended) {
         e.preventDefault();
         this.togglePause();
+        return;
+      }
+      if (k === " " || k === "e") {
+        e.preventDefault();
+        this.attack();
         return;
       }
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(k)) {
@@ -120,6 +129,44 @@ class App {
       };
       canvas.addEventListener("pointerup", release);
       canvas.addEventListener("pointercancel", release);
+    }
+    const joy = doc.getElementById("joystick");
+    const knob = doc.getElementById("joy-knob");
+    if (joy && knob) {
+      const R = 36;
+      let joyId: number | null = null;
+      const setVec = (e: PointerEvent): void => {
+        const rect = joy.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        let dx = e.clientX - cx;
+        let dy = e.clientY - cy;
+        const len = Math.hypot(dx, dy);
+        if (len > R) {
+          dx = (dx / len) * R;
+          dy = (dy / len) * R;
+        }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        this.joyVec = { x: dx / R, y: dy / R };
+      };
+      joy.addEventListener("pointerdown", (e) => {
+        resumeAudio();
+        joyId = e.pointerId;
+        joy.setPointerCapture(e.pointerId);
+        setVec(e);
+      });
+      joy.addEventListener("pointermove", (e) => {
+        if (joyId !== e.pointerId) return;
+        setVec(e);
+      });
+      const joyEnd = (e: PointerEvent): void => {
+        if (joyId !== e.pointerId) return;
+        joyId = null;
+        knob.style.transform = "translate(0px, 0px)";
+        this.joyVec = { x: 0, y: 0 };
+      };
+      joy.addEventListener("pointerup", joyEnd);
+      joy.addEventListener("pointercancel", joyEnd);
     }
     this.refreshHome();
     this.showHome();
@@ -258,6 +305,7 @@ class App {
           playChest();
         }
       }
+      this.attackCd = Math.max(0, this.attackCd - dt);
       this.fx.shake = Math.max(0, this.fx.shake - dt * 1.5);
       for (const p of this.fx.popups) p.age += dt;
       this.fx.popups = this.fx.popups.filter((p) => p.age < 1.2);
@@ -293,6 +341,33 @@ class App {
       this.ui.screens.run.hidden = true;
       this.ui.screens.result.hidden = false;
     }, won ? 600 : 900);
+  }
+
+  private attack(): void {
+    if (!this.run || this.run.status !== "running" || this.paused) return;
+    if (this.attackCd > 0) return;
+    this.attackCd = 0.45;
+    playSword();
+    const fx = this.run.facingX;
+    const fy = this.run.facingY;
+    const survivors: Enemy[] = [];
+    for (const e of this.run.enemies) {
+      const dx = e.x - this.run.px;
+      const dy = e.y - this.run.py;
+      const dist = Math.hypot(dx, dy);
+      const inRange = dist < 1.7;
+      const inArc = dist > 0 ? (dx * fx + dy * fy) / dist > 0.25 : true;
+      if (inRange && inArc) {
+        e.hp -= 1;
+        this.fx.popups.push({ x: e.x, y: e.y, text: "\u2694\ufe0f", age: 0 });
+      }
+      if (e.hp > 0) survivors.push(e);
+      else {
+        this.run.coins += ENEMY_BOUNTY[e.kind];
+        this.fx.popups.push({ x: e.x, y: e.y, text: `+${ENEMY_BOUNTY[e.kind]}\ud83d\udcb0`, age: 0 });
+      }
+    }
+    this.run.enemies = survivors;
   }
 
   private collectPickups(): void {

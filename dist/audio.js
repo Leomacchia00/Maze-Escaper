@@ -57,6 +57,9 @@ export function playLose() {
     tone({ freq: 330, dur: 0.2, type: "triangle", gain: 0.06, when: 0.18 });
     tone({ freq: 262, dur: 0.35, type: "triangle", gain: 0.06, when: 0.36 });
 }
+export function playSword() {
+    tone({ freq: 900, dur: 0.08, type: "square", gain: 0.04, slideTo: 300 });
+}
 export function playHurt() {
     tone({ freq: 180, dur: 0.15, type: "sawtooth", gain: 0.05, slideTo: 90 });
 }
