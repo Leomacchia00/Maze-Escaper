@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { generateDungeon, dungeonSizeForLevel, roomCountForLevel, isSolid, bfsDistances, floorCount, reachableFloorCount, } from "../dungeon.js";
 import { mulberry32 } from "../rng.js";
 test("dimensione dungeon cresce col livello e ha un tetto", () => {
-    assert.equal(dungeonSizeForLevel(1), 15);
-    assert.equal(dungeonSizeForLevel(2), 17);
-    assert.equal(dungeonSizeForLevel(100), 41);
+    assert.equal(dungeonSizeForLevel(1), 21);
+    assert.equal(dungeonSizeForLevel(2), 23);
+    assert.equal(dungeonSizeForLevel(100), 61);
 });
 test("roomCount cresce con il livello senza superare 9", () => {
-    assert.equal(roomCountForLevel(1), 3);
-    assert.equal(roomCountForLevel(20), 9);
+    assert.equal(roomCountForLevel(1), 4);
+    assert.equal(roomCountForLevel(20), 12);
 });
 test("il bordo del dungeon è sempre solido", () => {
     for (const seed of [1, 42, 999]) {

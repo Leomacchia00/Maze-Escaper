@@ -1,10 +1,12 @@
-const CACHE = "maze-escaper-v1";
+const CACHE = "maze-escaper-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
   "./manifest.webmanifest",
   "./dist/main.js",
+  "./assets/player.png",
+  "./assets/chest.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
 ];

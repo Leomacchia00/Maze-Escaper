@@ -1,9 +1,9 @@
 import { randInt } from "./rng.js";
 export function dungeonSizeForLevel(level) {
-    return Math.min(41, 15 + (level - 1) * 2);
+    return Math.min(61, 21 + (level - 1) * 2);
 }
 export function roomCountForLevel(level) {
-    return Math.min(9, 3 + Math.floor((level - 1) / 2));
+    return Math.min(12, 4 + Math.floor((level - 1) / 2));
 }
 export function isSolid(d, x, y) {
     if (x < 0 || y < 0 || x >= d.size || y >= d.size)

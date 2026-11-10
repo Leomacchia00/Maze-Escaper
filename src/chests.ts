@@ -51,7 +51,7 @@ export function makeChest(id: number, x: number, y: number, kind: ChestKind, rng
 }
 
 export function chestCountForLevel(level: number, roomCount: number): number {
-  return Math.min(10, Math.max(3, roomCount + Math.floor(level / 3)));
+  return Math.min(14, Math.max(4, roomCount + Math.floor(level / 2)));
 }
 
 function roomFloorCells(d: Dungeon, r: Rect, taken: Set<number>): Array<{ x: number; y: number }> {

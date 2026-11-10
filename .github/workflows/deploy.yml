@@ -29,6 +29,7 @@ jobs:
           mkdir -p _site/icons
           cp index.html styles.css manifest.webmanifest sw.js _site/
           cp -r dist _site/dist
+          cp -r assets _site/assets
           cp icons/*.png _site/icons/
 
       - name: Configure Pages

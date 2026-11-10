@@ -1,5 +1,7 @@
 export interface UIRefs {
-  screens: { home: HTMLElement; run: HTMLElement; result: HTMLElement };
+  screens: { home: HTMLElement; run: HTMLElement; result: HTMLElement; skills: HTMLElement };
+  skillsCoins: HTMLElement;
+  skillTree: HTMLElement;
   hudLevel: HTMLElement;
   hudAir: HTMLElement;
   hudAirFill: HTMLElement;
@@ -27,7 +29,10 @@ export function queryUI(doc: Document): UIRefs {
       home: q("screen-home"),
       run: q("screen-run"),
       result: q("screen-result"),
+      skills: q("screen-skills"),
     },
+    skillsCoins: q("skills-coins"),
+    skillTree: q("skill-tree"),
     hudLevel: q("hud-level"),
     hudAir: q("hud-air"),
     hudAirFill: q("hud-air-fill"),

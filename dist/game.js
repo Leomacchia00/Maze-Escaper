@@ -1,19 +1,20 @@
 import { generateDungeon, dungeonSizeForLevel, roomCountForLevel, isSolid } from "./dungeon.js";
 import { placeChests, chestCountForLevel } from "./chests.js";
 import { mulberry32 } from "./rng.js";
+import { skillEffects } from "./skills.js";
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;
 export const AIR_PER_CELL = 0.25;
-export function baseAirForLevel(level) {
-    return Math.round(dungeonSizeForLevel(level) * 1.6);
+export function baseAirForLevel(level, airMult = 1) {
+    return Math.round(dungeonSizeForLevel(level) * 1.5 * airMult);
 }
 export function createRun(level, seed, skills = {}) {
     const rng = mulberry32(seed);
     const size = dungeonSizeForLevel(level);
     const roomCount = roomCountForLevel(level);
     const dungeon = generateDungeon(size, roomCount, rng);
-    const airBonus = Math.floor((skills.air || 0) * 0.5);
-    const baseAir = baseAirForLevel(level) + airBonus;
+    const fx = skillEffects(skills);
+    const baseAir = baseAirForLevel(level, fx.airMult);
     const chests = placeChests(dungeon, dungeon.entrance, dungeon.exit, chestCountForLevel(level, roomCount), rng);
     const visited = new Uint8Array(size * size);
     visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
@@ -34,6 +35,8 @@ export function createRun(level, seed, skills = {}) {
         treasures: [],
         donations: [],
         chestOpenCount: 0,
+        speedMult: fx.speedMult,
+        coinMult: fx.coinMult,
     };
 }
 function blocked(d, x, y, r) {
@@ -70,7 +73,7 @@ export function movePlayer(state, ix, iy, dt) {
     const len = Math.hypot(ix, iy);
     if (len === 0)
         return state;
-    const dist = RUN_SPEED * Math.min(dt, 0.1);
+    const dist = RUN_SPEED * state.speedMult * Math.min(dt, 0.1);
     const steps = Math.max(1, Math.ceil(dist / 0.15));
     const sdx = ((ix / len) * dist) / steps;
     const sdy = ((iy / len) * dist) / steps;
@@ -124,7 +127,7 @@ export function pickupChests(state) {
     return {
         ...state,
         chests,
-        coins: state.coins + hit.coins,
+        coins: state.coins + Math.round(hit.coins * state.coinMult),
         treasures: hit.treasure ? [...state.treasures, hit.treasure] : state.treasures,
         donations: hit.donation ? [...state.donations, hit.donation] : state.donations,
         chestOpenCount: state.chestOpenCount + 1,

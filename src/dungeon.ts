@@ -16,11 +16,11 @@ export interface Dungeon {
 }
 
 export function dungeonSizeForLevel(level: number): number {
-  return Math.min(41, 15 + (level - 1) * 2);
+  return Math.min(61, 21 + (level - 1) * 2);
 }
 
 export function roomCountForLevel(level: number): number {
-  return Math.min(9, 3 + Math.floor((level - 1) / 2));
+  return Math.min(12, 4 + Math.floor((level - 1) / 2));
 }
 
 export function isSolid(d: Dungeon, x: number, y: number): boolean {

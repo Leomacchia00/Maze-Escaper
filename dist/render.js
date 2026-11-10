@@ -51,6 +51,65 @@ function shade(hex, f) {
     const b = Math.min(255, Math.round((v & 255) * f));
     return `rgb(${r},${g},${b})`;
 }
+const playerSprite = new Image();
+playerSprite.src = "assets/player.png";
+const chestSprite = new Image();
+chestSprite.src = "assets/chest.png";
+const tintCache = new Map();
+function tintedChest(kind) {
+    if (!chestSprite.complete || chestSprite.naturalWidth === 0)
+        return null;
+    const hit = tintCache.get(kind);
+    if (hit)
+        return hit;
+    const size = chestSprite.naturalWidth;
+    const cv = document.createElement("canvas");
+    cv.width = size;
+    cv.height = size;
+    const cx2 = cv.getContext("2d");
+    if (!cx2)
+        return null;
+    cx2.drawImage(chestSprite, 0, 0);
+    if (kind !== "legno") {
+        cx2.globalCompositeOperation = "source-atop";
+        cx2.globalAlpha = 0.4;
+        cx2.fillStyle = kind === "oro" ? "#ffd75e" : "#a78bfa";
+        cx2.fillRect(0, 0, size, size);
+    }
+    tintCache.set(kind, cv);
+    return cv;
+}
+function cellHash(x, y) {
+    let h = (x * 73856093) ^ (y * 19349663);
+    h = Math.imul(h ^ (h >>> 13), 3266489917);
+    return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function decorateFloor(ctx, g, b, x, y) {
+    const h = cellHash(x, y);
+    const sx = g.ox + x * g.tw;
+    const sy = g.oy + y * g.tw;
+    if (h < 0.12) {
+        ctx.fillStyle = shade(b.wallTop, 1.15);
+        ctx.beginPath();
+        ctx.arc(sx + g.tw * 0.3, sy + g.tw * 0.35, g.tw * 0.06, 0, Math.PI * 2);
+        ctx.arc(sx + g.tw * 0.62, sy + g.tw * 0.6, g.tw * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = b.accent;
+        ctx.beginPath();
+        ctx.arc(sx + g.tw * 0.3, sy + g.tw * 0.35, g.tw * 0.025, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    else if (h < 0.3) {
+        ctx.strokeStyle = shade(b.floorB, 0.82);
+        ctx.lineWidth = Math.max(1, g.tw * 0.04);
+        ctx.beginPath();
+        ctx.moveTo(sx + g.tw * 0.4, sy + g.tw * 0.65);
+        ctx.lineTo(sx + g.tw * 0.4, sy + g.tw * 0.45);
+        ctx.moveTo(sx + g.tw * 0.55, sy + g.tw * 0.7);
+        ctx.lineTo(sx + g.tw * 0.55, sy + g.tw * 0.5);
+        ctx.stroke();
+    }
+}
 const staticCache = new WeakMap();
 function getStaticLayer(d, b, width, height) {
     const cached = staticCache.get(d);
@@ -78,6 +137,7 @@ function getStaticLayer(d, b, width, height) {
                 else {
                     ctx.fillStyle = (x + y) % 2 === 0 ? b.floorA : b.floorB;
                     ctx.fillRect(sx, sy, g.tw + 0.5, g.tw + 0.5);
+                    decorateFloor(ctx, g, b, x, y);
                 }
             }
         }
@@ -124,11 +184,16 @@ function drawChest(ctx, g, x, y, kind) {
     const w = g.tw * 0.52;
     const h = g.tw * 0.34;
     const lid = w * 0.26;
-    const colors = CHEST_COLORS[kind] || CHEST_COLORS.legno;
+    const tinted = tintedChest(kind);
     ctx.fillStyle = "rgba(0,0,0,0.18)";
     ctx.beginPath();
     ctx.ellipse(cx, cy, w * 0.55, g.tw * 0.14, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (tinted) {
+        ctx.drawImage(tinted, cx - w * 0.75, cy - w * 0.85, w * 1.5, w * 1.5);
+        return;
+    }
+    const colors = CHEST_COLORS[kind] || CHEST_COLORS.legno;
     ctx.fillStyle = colors.side;
     ctx.fillRect(cx - w / 2, cy - h, w, h);
     ctx.fillStyle = colors.top;
@@ -148,6 +213,17 @@ function drawPlayer(ctx, g, state) {
     ctx.beginPath();
     ctx.ellipse(cx, cy, r * 0.75, r * 0.3, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (playerSprite.complete && playerSprite.naturalWidth > 0) {
+        const w = g.tw * 0.95;
+        const flip = state.facingX < 0;
+        ctx.save();
+        ctx.translate(cx, cy - r * 0.55 + bob);
+        if (flip)
+            ctx.scale(-1, 1);
+        ctx.drawImage(playerSprite, -w / 2, (-w * playerSprite.naturalHeight) / playerSprite.naturalWidth, w, (w * playerSprite.naturalHeight) / playerSprite.naturalWidth);
+        ctx.restore();
+        return;
+    }
     ctx.fillStyle = "#38bdf8";
     ctx.beginPath();
     ctx.ellipse(cx, cy - r * 1.05 + bob, r, r * 1.1, 0, 0, Math.PI * 2);

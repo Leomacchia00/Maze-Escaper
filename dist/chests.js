@@ -34,7 +34,7 @@ export function makeChest(id, x, y, kind, rng) {
     return { id, x, y, kind, coins: randInt(rng, min, max), treasure, donation, opened: false };
 }
 export function chestCountForLevel(level, roomCount) {
-    return Math.min(10, Math.max(3, roomCount + Math.floor(level / 3)));
+    return Math.min(14, Math.max(4, roomCount + Math.floor(level / 2)));
 }
 function roomFloorCells(d, r, taken) {
     const cells = [];

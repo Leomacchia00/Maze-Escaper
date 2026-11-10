@@ -48,10 +48,10 @@ test("rollChestKind restituisce solo tipi validi", () => {
   for (let i = 0; i < 500; i++) assert.ok(valid.has(rollChestKind(rng)));
 });
 
-test("chestCountForLevel: minimo 3, cresce col livello, max 10", () => {
-  assert.equal(chestCountForLevel(1, 3), 3);
-  assert.ok(chestCountForLevel(9, 9) > chestCountForLevel(1, 3));
-  assert.ok(chestCountForLevel(99, 9) <= 10);
+test("chestCountForLevel: minimo 4, cresce col livello, max 14", () => {
+  assert.equal(chestCountForLevel(1, 4), 4);
+  assert.ok(chestCountForLevel(9, 12) > chestCountForLevel(1, 4));
+  assert.ok(chestCountForLevel(99, 12) <= 14);
 });
 
 test("placeChests: numero richiesto (se le stanze bastano)", () => {

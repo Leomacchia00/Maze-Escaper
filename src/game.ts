@@ -1,6 +1,7 @@
 import { Dungeon, generateDungeon, dungeonSizeForLevel, roomCountForLevel, isSolid } from "./dungeon.js";
 import { Chest, placeChests, chestCountForLevel } from "./chests.js";
 import { Rng, mulberry32 } from "./rng.js";
+import { Owned, skillEffects } from "./skills.js";
 
 export type RunStatus = "ready" | "running" | "won" | "lost";
 
@@ -21,23 +22,25 @@ export interface RunState {
   treasures: string[];
   donations: string[];
   chestOpenCount: number;
+  speedMult: number;
+  coinMult: number;
 }
 
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;
 export const AIR_PER_CELL = 0.25;
 
-export function baseAirForLevel(level: number): number {
-  return Math.round(dungeonSizeForLevel(level) * 1.6);
+export function baseAirForLevel(level: number, airMult: number = 1): number {
+  return Math.round(dungeonSizeForLevel(level) * 1.5 * airMult);
 }
 
-export function createRun(level: number, seed: number, skills: Record<string, number> = {}): RunState {
+export function createRun(level: number, seed: number, skills: Owned = {}): RunState {
   const rng: Rng = mulberry32(seed);
   const size = dungeonSizeForLevel(level);
   const roomCount = roomCountForLevel(level);
   const dungeon = generateDungeon(size, roomCount, rng);
-  const airBonus = Math.floor((skills.air || 0) * 0.5);
-  const baseAir = baseAirForLevel(level) + airBonus;
+  const fx = skillEffects(skills);
+  const baseAir = baseAirForLevel(level, fx.airMult);
   const chests = placeChests(dungeon, dungeon.entrance, dungeon.exit, chestCountForLevel(level, roomCount), rng);
   const visited = new Uint8Array(size * size);
   visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
@@ -58,6 +61,8 @@ export function createRun(level: number, seed: number, skills: Record<string, nu
     treasures: [],
     donations: [],
     chestOpenCount: 0,
+    speedMult: fx.speedMult,
+    coinMult: fx.coinMult,
   };
 }
 
@@ -93,7 +98,7 @@ export function movePlayer(state: RunState, ix: number, iy: number, dt: number):
   if (state.status === "won" || state.status === "lost") return state;
   const len = Math.hypot(ix, iy);
   if (len === 0) return state;
-  const dist = RUN_SPEED * Math.min(dt, 0.1);
+  const dist = RUN_SPEED * state.speedMult * Math.min(dt, 0.1);
   const steps = Math.max(1, Math.ceil(dist / 0.15));
   const sdx = ((ix / len) * dist) / steps;
   const sdy = ((iy / len) * dist) / steps;
@@ -147,7 +152,7 @@ export function pickupChests(state: RunState): RunState {
   return {
     ...state,
     chests,
-    coins: state.coins + hit.coins,
+    coins: state.coins + Math.round(hit.coins * state.coinMult),
     treasures: hit.treasure ? [...state.treasures, hit.treasure] : state.treasures,
     donations: hit.donation ? [...state.donations, hit.donation] : state.donations,
     chestOpenCount: state.chestOpenCount + 1,

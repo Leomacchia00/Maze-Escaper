@@ -2,28 +2,36 @@ import { createRun, movePlayer, tick, pickupChests, payout } from "./game.js";
 import { drawRun } from "./render.js";
 import { biomeForLevel } from "./render.js";
 import { queryUI } from "./ui.js";
-const SAVE_KEY = "maze-escaper:v3";
-const SAVE_VERSION = 3;
+import { SKILL_TREE, canBuy, buySkill, skillEffects } from "./skills.js";
+const SAVE_KEY = "maze-escaper:v4";
+const OLD_KEY = "maze-escaper:v3";
+const SAVE_VERSION = 4;
 function loadSave() {
+    const fallback = { version: SAVE_VERSION, level: 1, coins: 0, bestAir: 0, donations: [], skills: {} };
     try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        if (raw) {
+        for (const key of [SAVE_KEY, OLD_KEY]) {
+            const raw = localStorage.getItem(key);
+            if (!raw)
+                continue;
             const data = JSON.parse(raw);
-            if (data.version === SAVE_VERSION && typeof data.level === "number") {
-                return {
-                    version: SAVE_VERSION,
-                    level: data.level,
-                    coins: typeof data.coins === "number" ? data.coins : 0,
-                    bestAir: typeof data.bestAir === "number" ? data.bestAir : 0,
-                    donations: Array.isArray(data.donations) ? data.donations : [],
-                };
-            }
+            if (typeof data.level !== "number")
+                continue;
+            if (data.version !== 3 && data.version !== SAVE_VERSION)
+                continue;
+            return {
+                version: SAVE_VERSION,
+                level: data.level,
+                coins: typeof data.coins === "number" ? data.coins : 0,
+                bestAir: typeof data.bestAir === "number" ? data.bestAir : 0,
+                donations: Array.isArray(data.donations) ? data.donations : [],
+                skills: data.skills && typeof data.skills === "object" ? data.skills : {},
+            };
         }
     }
     catch {
         /* save corrotto: riparti da zero */
     }
-    return { version: SAVE_VERSION, level: 1, coins: 0, bestAir: 0, donations: [] };
+    return fallback;
 }
 function persist(data) {
     try {
@@ -55,13 +63,15 @@ class App {
                 const ix = kx !== 0 ? kx : this.joyVec.x;
                 const iy = ky !== 0 ? ky : this.joyVec.y;
                 const before = this.run.chestOpenCount;
+                const coinsBefore = this.run.coins;
                 this.run = movePlayer(this.run, ix, iy, dt);
                 this.run = tick(this.run, dt);
                 this.run = pickupChests(this.run);
                 if (this.run.chestOpenCount > before) {
                     const chest = this.run.chests.find((c) => c.opened && c.id === before);
                     if (chest) {
-                        const popup = { x: chest.x, y: chest.y, text: `+${chest.coins}💰`, age: 0 };
+                        const gained = this.run.coins - coinsBefore;
+                        const popup = { x: chest.x, y: chest.y, text: `+${gained}💰`, age: 0 };
                         this.fx.popups.push(popup);
                     }
                 }
@@ -83,6 +93,9 @@ class App {
         this.save = loadSave();
         doc.getElementById("btn-play")?.addEventListener("click", () => this.start());
         doc.getElementById("btn-menu")?.addEventListener("click", () => this.showHome());
+        doc.getElementById("btn-skills")?.addEventListener("click", () => this.showSkills());
+        doc.getElementById("btn-skills-back")?.addEventListener("click", () => this.showHome());
+        this.ui.skillTree.addEventListener("click", (e) => this.onTreeClick(e));
         doc.getElementById("btn-retry")?.addEventListener("click", () => this.start());
         doc.addEventListener("keydown", (e) => {
             const k = e.key.toLowerCase();
@@ -127,13 +140,62 @@ class App {
             navigator.serviceWorker.register("./sw.js").catch(() => { });
         }
     }
+    showSkills() {
+        this.renderSkillTree();
+        this.ui.screens.home.hidden = true;
+        this.ui.screens.run.hidden = true;
+        this.ui.screens.result.hidden = true;
+        this.ui.screens.skills.hidden = false;
+    }
+    onTreeClick(e) {
+        const target = e.target.closest("[data-skill]");
+        if (!target)
+            return;
+        const id = target.getAttribute("data-skill");
+        const res = buySkill(this.save.skills, id, this.save.coins);
+        if (!res)
+            return;
+        this.save.skills = res.owned;
+        this.save.coins = res.coins;
+        persist(this.save);
+        this.renderSkillTree();
+    }
+    renderSkillTree() {
+        this.ui.skillsCoins.textContent = String(this.save.coins);
+        this.ui.skillTree.innerHTML = "";
+        const branches = [
+            { key: "aria", label: "🌬️ Aria" },
+            { key: "passo", label: "👟 Passo" },
+            { key: "fortuna", label: "🍀 Fortuna" },
+        ];
+        for (const br of branches) {
+            const col = document.createElement("div");
+            col.className = "skill-col";
+            const head = document.createElement("div");
+            head.className = "skill-col-head";
+            head.textContent = br.label;
+            col.appendChild(head);
+            for (const node of SKILL_TREE.filter((n) => n.branch === br.key)) {
+                const state = canBuy(node, this.save.skills, this.save.coins);
+                const el = document.createElement("button");
+                el.className = "skill-node " + (state === "owned" ? "owned" : state === "locked" ? "locked" : state === "poor" ? "poor" : "available");
+                el.setAttribute("data-skill", node.id);
+                el.disabled = state === "locked" || state === "owned" || state === "poor";
+                const fx = skillEffects(this.save.skills);
+                el.innerHTML = `<span class="skill-emoji">${node.emoji}</span><span class="skill-name">${node.name}</span><span class="skill-desc">${node.desc}</span><span class="skill-cost">${state === "owned" ? "✔ Acquistata" : "🔒 " + node.cost + " 💰"}</span>`;
+                void fx;
+                col.appendChild(el);
+            }
+            this.ui.skillTree.appendChild(col);
+        }
+    }
     refreshHome() {
         this.ui.homeLevel.textContent = String(this.save.level);
         this.ui.homeCoins.textContent = String(this.save.coins);
         this.ui.homeBest.textContent = this.save.bestAir > 0 ? `${this.save.bestAir}s` : "—";
     }
     start() {
-        this.run = createRun(this.save.level, (Date.now() ^ performance.now()) >>> 0);
+        this.run = createRun(this.save.level, (Date.now() ^ performance.now()) >>> 0, this.save.skills);
         this.fx = { shake: 0, popups: [] };
         this.ended = false;
         this.lastHud = { air: -1, coins: -1 };
@@ -150,6 +212,7 @@ class App {
         this.ui.screens.home.hidden = false;
         this.ui.screens.run.hidden = true;
         this.ui.screens.result.hidden = true;
+        this.ui.screens.skills.hidden = true;
         cancelAnimationFrame(this.raf);
     }
     endRun() {

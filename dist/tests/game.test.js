@@ -63,6 +63,16 @@ test("nuove celle visitate restituiscono aria (fino al cap)", () => {
     const capped = movePlayer(s, 0, 1, 0.1);
     assert.ok(capped.air <= s.baseAir);
 });
+test("le skill d'aria aumentano l'aria di base", () => {
+    const plain = createRun(LEVEL, SEED);
+    const skilled = createRun(LEVEL, SEED, { air1: true, air2: true });
+    assert.ok(skilled.baseAir > plain.baseAir);
+    assert.ok(Math.abs(skilled.baseAir / plain.baseAir - 1.45) < 0.02);
+});
+test("le skill fortuna moltiplicano le monete delle casse", () => {
+    const s = createRun(LEVEL, SEED, { luck3: true });
+    assert.ok(s.coinMult > 1.3);
+});
 test("baseAir cresce col livello", () => {
     assert.ok(baseAirForLevel(2) > baseAirForLevel(1));
     assert.ok(baseAirForLevel(5) > baseAirForLevel(2));

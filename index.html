@@ -22,7 +22,10 @@
         <div class="stat-chip"><span class="stat-label">Monete</span><span class="stat-value" id="home-coins">0</span></div>
         <div class="stat-chip"><span class="stat-label">Record aria</span><span class="stat-value" id="home-best">—</span></div>
       </div>
-      <button id="btn-play" class="btn primary">▶ Gioca</button>
+      <div class="btn-row">
+        <button id="btn-play" class="btn primary">▶ Gioca</button>
+        <button id="btn-skills" class="btn">🌳 Skill</button>
+      </div>
       <p class="hint">WASD o frecce per muoverti · su mobile trascina il dito sul dungeon</p>
     </section>
 
@@ -33,6 +36,13 @@
         <div class="hud-pill"><span class="hud-icon">💰</span><span id="hud-coins">0</span></div>
       </header>
       <canvas id="maze-canvas" width="720" height="720"></canvas>
+    </section>
+
+    <section id="screen-skills" class="screen" hidden>
+      <h1>🌳 Albero delle Skill</h1>
+      <p class="hint">Monete disponibili: <strong id="skills-coins">0</strong> 💰</p>
+      <div id="skill-tree" class="skill-tree"></div>
+      <div class="btn-row"><button id="btn-skills-back" class="btn">← Menu</button></div>
     </section>
 
     <section id="screen-result" class="screen" hidden>
