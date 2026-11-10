@@ -51,11 +51,12 @@ class App {
         this.raf = 0;
         this.lastTs = null;
         this.ended = false;
+        this.paused = false;
         this.lastHud = { air: -1, coins: -1 };
         this.loop = (ts) => {
             const dt = this.lastTs !== null ? Math.min((ts - this.lastTs) / 1000, 0.05) : 0;
             this.lastTs = ts;
-            if (this.run) {
+            if (this.run && !this.paused) {
                 const kx = (this.keys.has("arrowright") || this.keys.has("d") ? 1 : 0) -
                     (this.keys.has("arrowleft") || this.keys.has("a") ? 1 : 0);
                 const ky = (this.keys.has("arrowdown") || this.keys.has("s") ? 1 : 0) -
@@ -97,8 +98,16 @@ class App {
         doc.getElementById("btn-skills-back")?.addEventListener("click", () => this.showHome());
         this.ui.skillTree.addEventListener("click", (e) => this.onTreeClick(e));
         doc.getElementById("btn-retry")?.addEventListener("click", () => this.start());
+        doc.getElementById("btn-pause")?.addEventListener("click", () => this.togglePause());
+        doc.getElementById("btn-resume")?.addEventListener("click", () => this.resume());
+        doc.getElementById("btn-abandon")?.addEventListener("click", () => this.abandonRun());
         doc.addEventListener("keydown", (e) => {
             const k = e.key.toLowerCase();
+            if (k === "escape" && this.run && !this.ended) {
+                e.preventDefault();
+                this.togglePause();
+                return;
+            }
             if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(k)) {
                 this.keys.add(k);
                 e.preventDefault();
@@ -198,6 +207,8 @@ class App {
         this.run = createRun(this.save.level, (Date.now() ^ performance.now()) >>> 0, this.save.skills);
         this.fx = { shake: 0, popups: [] };
         this.ended = false;
+        this.paused = false;
+        this.ui.pauseOverlay.hidden = true;
         this.lastHud = { air: -1, coins: -1 };
         this.lastTs = null;
         this.ui.screens.home.hidden = true;
@@ -206,6 +217,25 @@ class App {
         this.ui.hudBiome.textContent = biomeForLevel(this.run.level).name;
         cancelAnimationFrame(this.raf);
         this.raf = requestAnimationFrame(this.loop);
+    }
+    togglePause() {
+        if (!this.run || this.ended)
+            return;
+        this.paused = !this.paused;
+        this.ui.pauseOverlay.hidden = !this.paused;
+        this.lastTs = null;
+    }
+    resume() {
+        if (!this.paused)
+            return;
+        this.paused = false;
+        this.ui.pauseOverlay.hidden = true;
+        this.lastTs = null;
+    }
+    abandonRun() {
+        this.paused = false;
+        this.ui.pauseOverlay.hidden = true;
+        this.showHome();
     }
     showHome() {
         this.refreshHome();

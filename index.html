@@ -34,7 +34,18 @@
         <div class="hud-pill"><span class="hud-icon">🧭</span><span id="hud-level">1</span><span class="hud-sub" id="hud-biome">Prato</span></div>
         <div class="hud-pill grow"><span class="hud-icon">🌬️</span><div class="air-wrap"><div class="air-track"><div id="hud-air-fill" class="air-fill"></div></div><span id="hud-air" class="air-num">0</span></div></div>
         <div class="hud-pill"><span class="hud-icon">💰</span><span id="hud-coins">0</span></div>
+        <button id="btn-pause" class="hud-btn" title="Pausa (Esc)" aria-label="Pausa">⏸</button>
       </header>
+      <div id="pause-overlay" class="overlay" hidden>
+        <div class="card pause-card">
+          <h2>⏸ Pausa</h2>
+          <div class="btn-row">
+            <button id="btn-resume" class="btn primary">▶ Riprendi</button>
+            <button id="btn-abandon" class="btn">🏠 Abbandona</button>
+          </div>
+          <p class="hint">Premi Esc per riprendere</p>
+        </div>
+      </div>
       <canvas id="maze-canvas" width="720" height="720"></canvas>
     </section>
 

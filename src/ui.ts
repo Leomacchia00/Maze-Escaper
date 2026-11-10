@@ -7,6 +7,10 @@ export interface UIRefs {
   hudAirFill: HTMLElement;
   hudCoins: HTMLElement;
   hudBiome: HTMLElement;
+  btnPause: HTMLElement;
+  pauseOverlay: HTMLElement;
+  btnResume: HTMLElement;
+  btnAbandon: HTMLElement;
   homeLevel: HTMLElement;
   homeCoins: HTMLElement;
   homeBest: HTMLElement;
@@ -38,6 +42,10 @@ export function queryUI(doc: Document): UIRefs {
     hudAirFill: q("hud-air-fill"),
     hudCoins: q("hud-coins"),
     hudBiome: q("hud-biome"),
+    btnPause: q("btn-pause"),
+    pauseOverlay: q("pause-overlay"),
+    btnResume: q("btn-resume"),
+    btnAbandon: q("btn-abandon"),
     homeLevel: q("home-level"),
     homeCoins: q("home-coins"),
     homeBest: q("home-best"),
