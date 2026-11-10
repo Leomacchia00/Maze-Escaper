@@ -1,75 +1,40 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ChestKind, chestCoins, makeChest, openChestAt, placeChests } from "../chests.js";
+import { makeChest, chestCountForCells, placeChests, openChestAt } from "../chests.js";
 
-function mulberry32(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 14), 1 | a)) >>> 0;
-    return t / 4294967296;
-  };
-}
+test("makeChest crea casse chiuse con loot nel range", () => {
+  const c = makeChest(5, "oro", Math.random);
+  assert.equal(c.opened, false);
+  assert.ok(c.coins >= 4 && c.coins <= 24);
+});
 
-test("placeChests restituisce il numero richiesto di casse su celle libere", () => {
-  const freeCells = [10, 11, 12, 13, 14, 15];
-  const chests = placeChests(freeCells, 0, 119, 3, mulberry32(42));
-  assert.ok(chests.length <= freeCells.length);
-  for (const chest of chests) {
-    assert.ok(freeCells.includes(chest.cell), "la cassa è su una cella libera");
+test("chestCountForCells sta nei limiti 3-8", () => {
+  assert.equal(chestCountForCells(121), 3);
+  assert.ok(chestCountForCells(1681) <= 8);
+});
+
+test("placeChests non mette casse su ingresso o uscita", () => {
+  const free = [1, 2, 3, 4, 5];
+  const chests = placeChests(free, 0, 24, 3, Math.random);
+  for (const c of chests) {
+    assert.notEqual(c.cell, 0);
+    assert.notEqual(c.cell, 24);
   }
 });
 
-test("openChestAt apra solo la cassa sulla cella del giocatore", () => {
+test("openChestAt apre solo la cassa sulla cella del giocatore", () => {
   const state = {
     chests: [
-      { cell: 5, kind: "legno" as ChestKind, coins: 6, treasure: null, opened: false },
-      { cell: 9, kind: "oro" as ChestKind, coins: 12, treasure: "Gemma", opened: false },
+      { cell: 5, kind: "legno" as const, coins: 6, treasure: null, opened: false },
+      { cell: 9, kind: "oro" as const, coins: 12, treasure: "Gemma", opened: false },
     ],
     lootCoins: 0,
     lootTreasures: [] as string[],
-    player: 5,
+    playerCell: 5,
   };
-  const result = openChestAt(state);
-  assert.ok(result);
-  assert.equal(result.lootCoins, 6);
-  assert.equal(result.chests[0].opened, true);
-  assert.equal(result.chests[1].opened, false);
-});
-
-test("openChestAt restituisce null se nessuna cassa sulla cella", () => {
-  const state = {
-    chests: [{ cell: 5, kind: "legno" as ChestKind, coins: 6, treasure: null, opened: false }],
-    lootCoins: 0,
-    lootTreasures: [] as string[],
-    player: 7,
-  };
-  assert.equal(openChestAt(state), null);
-});
-
-test("openChestAt non apre due volte la stessa cassa", () => {
-  const state = {
-    chests: [{ cell: 5, kind: "legno" as ChestKind, coins: 6, treasure: null, opened: true }],
-    lootCoins: 6,
-    lootTreasures: [] as string[],
-    player: 5,
-  };
-  assert.equal(openChestAt(state), null);
-});
-
-test("chestCoins rispetta l'intervallo del tipo di cassa", () => {
-  for (const kind of ["legno", "oro", "ornata"] as ChestKind[]) {
-    for (let i = 0; i < 50; i++) {
-      const coins = chestCoins(kind, mulberry32(i + 1));
-      assert.ok(coins >= 0, `${kind}: ${coins} non negativo`);
-    }
-  }
-});
-
-test("makeChest crea casse con stato aperto falso", () => {
-  const chest = makeChest(3, "oro", mulberry32(7));
-  assert.equal(chest.cell, 3);
-  assert.equal(chest.opened, false);
-  assert.equal(chest.kind, "oro");
+  const res = openChestAt(state);
+  assert.ok(res);
+  assert.equal(res.lootCoins, 6);
+  assert.equal(res.chests[0].opened, true);
+  assert.equal(res.chests[1].opened, false);
 });

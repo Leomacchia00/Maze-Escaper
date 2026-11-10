@@ -10,16 +10,25 @@ const COIN_RANGE = {
     oro: [10, 16],
     ornata: [16, 24],
 };
-export function chestCoins(kind, rand) {
-    const [min, max] = COIN_RANGE[kind];
-    return min + Math.floor(rand() * (max - min + 1));
+function kindForRoll(r) {
+    if (r < 0.6)
+        return "legno";
+    if (r < 0.85)
+        return "oro";
+    return "ornata";
 }
 export function makeChest(cell, kind, rand) {
-    const coins = chestCoins(kind, rand);
-    const treasure = kind === "legno"
-        ? null
-        : TREASURES[Math.floor(rand() * TREASURES.length)];
-    return { cell, kind, coins, treasure, opened: false };
+    const [min, max] = COIN_RANGE[kind];
+    return {
+        cell,
+        kind,
+        coins: min + Math.floor(rand() * (max - min + 1)),
+        treasure: kind === "legno" ? null : TREASURES[Math.floor(rand() * TREASURES.length)],
+        opened: false,
+    };
+}
+export function chestCountForCells(cells) {
+    return Math.min(8, Math.max(3, Math.round(cells / 45)));
 }
 export function placeChests(freeCells, entrance, exit, count, rand) {
     const pool = freeCells.filter((c) => c !== entrance && c !== exit);
@@ -28,24 +37,16 @@ export function placeChests(freeCells, entrance, exit, count, rand) {
         const j = Math.floor(rand() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    const chosen = shuffled.slice(0, Math.min(count, shuffled.length));
-    return chosen.map((cell) => {
-        const r = rand();
-        const kind = r < 0.6 ? "legno" : r < 0.85 ? "oro" : "ornata";
-        return makeChest(cell, kind, rand);
-    });
+    return shuffled.slice(0, Math.min(count, shuffled.length))
+        .map((cell) => makeChest(cell, kindForRoll(rand()), rand));
 }
 export function openChestAt(state) {
-    const chest = state.chests.find((c) => c.cell === state.player && !c.opened);
+    const chest = state.chests.find((c) => c.cell === state.playerCell && !c.opened);
     if (!chest)
         return null;
-    const chests = state.chests.map((c) => c.cell === chest.cell ? { ...c, opened: true } : c);
-    const lootCoins = state.lootCoins + chest.coins;
-    const lootTreasures = chest.treasure
-        ? [...state.lootTreasures, chest.treasure]
-        : state.lootTreasures;
-    return { chests, lootCoins, lootTreasures };
-}
-export function chestCountForCells(cells) {
-    return Math.min(8, Math.max(3, Math.round(cells / 45)));
+    return {
+        chests: state.chests.map((c) => (c.cell === chest.cell ? { ...c, opened: true } : c)),
+        lootCoins: state.lootCoins + chest.coins,
+        lootTreasures: chest.treasure ? [...state.lootTreasures, chest.treasure] : state.lootTreasures,
+    };
 }

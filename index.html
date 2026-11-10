@@ -3,140 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#fcfae6" />
   <title>Maze Escaper</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Quicksand:wght@600;700&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app">
-    <section id="screen-home" class="screen">
-      <header class="brand">
-        <h1 tabindex="-1">Maze Escaper</h1>
-        <p class="subtitle">Trova l'uscita prima che scada il tempo.</p>
-      </header>
-      <button id="btn-play" class="primary lobby-play">&#9654; Gioca</button>
-      <nav class="lobby-grid" aria-label="Menu principale">
-        <button id="btn-skills" class="tile">
-          <span class="tile-icon" aria-hidden="true">&#9889;</span>
-          <span class="tile-name">Skill</span>
-          <span class="tile-hint">Migliora il giocatore</span>
-        </button>
-        <button id="btn-settings" class="tile">
-          <span class="tile-icon" aria-hidden="true">&#9881;</span>
-          <span class="tile-name">Impostazioni</span>
-          <span class="tile-hint">Vibrazione, dati</span>
-        </button>
-      </nav>
-      <div class="panel panel-row">
-        <div>
-          <h2>Livello corrente</h2>
-          <p class="hint">Ogni livello: labirinto pi&ugrave; grande</p>
-        </div>
-        <span class="big-number" id="home-level">1</span>
-      </div>
-      <div class="panel panel-row">
-        <div>
-          <h2>Monete</h2>
-          <p class="hint">Guadagnate vincendo le run</p>
-        </div>
-        <span class="big-number" id="home-currency">0</span>
-      </div>
-      <h2>Statistiche</h2>
-      <div class="stats-grid">
-        <div class="stat"><div class="value" id="stat-runs">0</div><div class="label">Giocate</div></div>
-        <div class="stat"><div class="value" id="stat-wins">0</div><div class="label">Vinte</div></div>
-        <div class="stat"><div class="value" id="stat-losses">0</div><div class="label">Perse</div></div>
-      </div>
+    <section id="screen-home">
+      <h1>Maze Escaper</h1>
+      <p>Trova l'uscita prima che finisca l'aria.</p>
+      <button id="btn-play" class="primary">Gioca</button>
     </section>
 
-    <section id="screen-skills" class="screen" hidden>
-      <header class="page-header">
-        <button id="btn-back-skills" class="back-btn" aria-label="Torna al menu">&#8592;</button>
-        <h1 tabindex="-1">Skill</h1>
-        <span class="chip currency-chip" id="skills-currency">Monete: 0</span>
+    <section id="screen-run" hidden>
+      <header>
+        <span id="hud-level">1</span>
+        <span id="hud-air">0</span>
+        <span id="hud-coins">0</span>
       </header>
-      <div id="skills-list"></div>
+      <canvas id="maze-canvas" width="640" height="640"></canvas>
     </section>
 
-    <section id="screen-settings" class="screen" hidden>
-      <header class="page-header">
-        <button id="btn-back-settings" class="back-btn" aria-label="Torna al menu">&#8592;</button>
-        <h1 tabindex="-1">Impostazioni</h1>
-      </header>
-      <div class="panel setting-row">
-        <div>
-          <h2>Vibrazione</h2>
-          <p class="hint">Feedback tattile su mobile</p>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="setting-vibration" checked />
-          <span class="slider" aria-hidden="true"></span>
-          <span class="sr-only">Attiva vibrazione</span>
-        </label>
+    <section id="screen-result" hidden>
+      <h1 id="result-title">Run conclusa</h1>
+      <div id="loot-panel">
+        <div><span>Casse aperte</span><span id="loot-chests">0</span></div>
+        <div><span>Tesori trovati</span><span id="loot-treasures">0</span></div>
+        <div><span>Monete recuperate</span><span id="loot-coins">0</span></div>
       </div>
-      <div class="panel setting-row">
-        <div>
-          <h2>Reset progressi</h2>
-          <p class="hint">Cancella livello, record e statistiche</p>
-        </div>
-        <button id="btn-reset-progress" class="danger">Reset</button>
-      </div>
-      <p class="hint version">Maze Escaper v0.2</p>
-    </section>
-
-    <section id="screen-run" class="screen" hidden>
-      <h1 class="sr-only" tabindex="-1">Partita in corso</h1>
-      <header class="run-header">
-        <button id="btn-back-run" class="back-btn" aria-label="Abbandona e torna al menu">&#8592;</button>
-        <span class="chip" id="hud-level">Livello 1</span>
-        <span class="chip time" id="hud-time" aria-label="Aria rimanente nella maschera">0.0s</span>
-        <button id="btn-pause" aria-label="Pausa">&#9208;</button>
-      </header>
-      <div id="time-bar" aria-hidden="true"><div id="time-bar-fill"></div></div>
-      <div id="canvas-wrap">
-        <canvas id="maze-canvas" width="640" height="640" role="img" aria-label="Labirinto di gioco"></canvas>
-        <div id="pause-overlay" role="dialog" aria-modal="true" aria-label="Gioco in pausa" tabindex="-1" hidden>
-          <h2 class="pause-title">In pausa</h2>
-          <div class="pause-actions">
-            <button id="btn-resume" class="primary">Riprendi</button>
-            <button id="btn-restart-run">Ricomincia</button>
-            <button id="btn-quit-run">Menu</button>
-          </div>
-          <p class="hint">Esc per riprendere</p>
-        </div>
-      </div>
-      <p class="hint">Muoviti liberamente con WASD o frecce &#183; trascina il dito su mobile &#183; Esc per la pausa</p>
-    </section>
-
-    <section id="screen-result" class="screen" hidden>
-      <header class="page-header">
-        <button id="btn-back-result" class="back-btn" aria-label="Torna al menu">&#8592;</button>
-        <h1 id="result-title" class="result-title" tabindex="-1">Vittoria!</h1>
-      </header>
-      <div class="panel score-box">
-        <p class="score" id="result-score-value">0</p>
-        <p class="score-label">Punteggio</p>
-      </div>
-      <div class="panel breakdown" id="result-breakdown" hidden>
-        <div class="row"><span>Tempo residuo</span><span id="breakdown-time">+0</span></div>
-        <div class="row"><span>Labirinto</span><span id="breakdown-size">+0</span></div>
-        <div class="row"><span>Bonus efficienza</span><span id="breakdown-efficiency">+0</span></div>
-      </div>
-      <p class="record-badge" id="result-record"></p>
-      <div class="panel breakdown" id="result-loot" hidden>
-        <div class="row"><span>Casse aperte</span><span id="loot-chests">0</span></div>
-        <div class="row"><span>Tesori trovati</span><span id="loot-treasures">0</span></div>
-        <div class="row"><span>Monete recuperate</span><span id="loot-coins">+0</span></div>
-      </div>
-      <canvas id="result-maze" width="360" height="360" role="img" aria-label="Labirinto della run conclusa"></canvas>
-      <div class="actions">
-        <button id="btn-next-level" class="primary" hidden>Prossimo livello</button>
-        <button id="btn-retry" class="primary">Riprova</button>
-        <button id="btn-result-menu">Menu</button>
-      </div>
+      <button id="btn-retry">Riprova</button>
+      <button id="btn-menu">Menu</button>
     </section>
   </main>
   <script type="module" src="dist/main.js"></script>
