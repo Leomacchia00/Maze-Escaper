@@ -1,29 +1,27 @@
-import { generateMaze, mazeSizeForLevel, TOP, RIGHT, BOTTOM, LEFT } from "./maze.js";
-import { placeChests } from "./chests.js";
+import { generateDungeon, dungeonSizeForLevel, roomCountForLevel, isSolid } from "./dungeon.js";
+import { placeChests, chestCountForLevel } from "./chests.js";
+import { mulberry32 } from "./rng.js";
 export const PLAYER_RADIUS = 0.3;
 export const RUN_SPEED = 4.5;
 export const AIR_PER_CELL = 0.25;
 export function baseAirForLevel(level) {
-    const n = mazeSizeForLevel(level);
-    return Math.round(n * 2.2 * 10) / 10;
+    return Math.round(dungeonSizeForLevel(level) * 1.6);
 }
-export function createRun(level, rng = Math.random, skills = {}) {
-    const n = mazeSizeForLevel(level);
-    const maze = generateMaze(n, rng);
-    const freeCells = [];
-    for (let i = 0; i < n * n; i++) {
-        if (i !== maze.entrance && i !== maze.exit)
-            freeCells.push(i);
-    }
-    const chests = placeChests(freeCells, maze.entrance, maze.exit, chestCountForCells(n * n), rng);
-    const baseAir = baseAirForLevel(level);
-    const visited = new Uint8Array(n * n);
-    visited[maze.entrance] = 1;
+export function createRun(level, seed, skills = {}) {
+    const rng = mulberry32(seed);
+    const size = dungeonSizeForLevel(level);
+    const roomCount = roomCountForLevel(level);
+    const dungeon = generateDungeon(size, roomCount, rng);
+    const airBonus = Math.floor((skills.air || 0) * 0.5);
+    const baseAir = baseAirForLevel(level) + airBonus;
+    const chests = placeChests(dungeon, dungeon.entrance, dungeon.exit, chestCountForLevel(level, roomCount), rng);
+    const visited = new Uint8Array(size * size);
+    visited[dungeon.entrance.y * size + dungeon.entrance.x] = 1;
     return {
         level,
-        maze,
-        px: (maze.entrance % n) + 0.5,
-        py: Math.floor(maze.entrance / n) + 0.5,
+        dungeon,
+        px: dungeon.entrance.x + 0.5,
+        py: dungeon.entrance.y + 0.5,
         facingX: 1,
         facingY: 0,
         air: baseAir,
@@ -32,39 +30,70 @@ export function createRun(level, rng = Math.random, skills = {}) {
         visited,
         visitedCount: 1,
         chests,
-        lootCoins: 0,
-        lootTreasures: [],
+        coins: 0,
+        treasures: [],
+        donations: [],
+        chestOpenCount: 0,
     };
 }
+function blocked(d, x, y, r) {
+    const x0 = Math.floor(x - r);
+    const x1 = Math.floor(x + r);
+    const y0 = Math.floor(y - r);
+    const y1 = Math.floor(y + r);
+    for (let cy = y0; cy <= y1; cy++) {
+        for (let cx = x0; cx <= x1; cx++) {
+            if (!isSolid(d, cx, cy))
+                continue;
+            const nx = Math.max(cx, Math.min(x, cx + 1));
+            const ny = Math.max(cy, Math.min(y, cy + 1));
+            const dx = x - nx;
+            const dy = y - ny;
+            if (dx * dx + dy * dy < r * r)
+                return true;
+        }
+    }
+    return false;
+}
+function slide(d, px, py, dx, dy, r) {
+    let nx = px + dx;
+    if (blocked(d, nx, py, r))
+        nx = px;
+    let ny = py + dy;
+    if (blocked(d, nx, ny, r))
+        ny = py;
+    return { x: nx, y: ny };
+}
 export function movePlayer(state, ix, iy, dt) {
-    if (state.status !== "running" && state.status !== "ready")
+    if (state.status === "won" || state.status === "lost")
         return state;
     const len = Math.hypot(ix, iy);
     if (len === 0)
         return state;
     const dist = RUN_SPEED * Math.min(dt, 0.1);
-    const steps = Math.max(1, Math.ceil(dist / 0.2));
+    const steps = Math.max(1, Math.ceil(dist / 0.15));
     const sdx = ((ix / len) * dist) / steps;
     const sdy = ((iy / len) * dist) / steps;
     let px = state.px;
     let py = state.py;
     for (let i = 0; i < steps; i++) {
-        const res = slide(state.maze, px, py, sdx, sdy);
-        px = res.px;
-        py = res.py;
+        const res = slide(state.dungeon, px, py, sdx, sdy, PLAYER_RADIUS);
+        px = res.x;
+        py = res.y;
     }
     const visited = state.visited.slice();
-    const cell = Math.floor(py) * state.maze.n + Math.floor(px);
+    const cx = Math.floor(px);
+    const cy = Math.floor(py);
+    const cell = cy * state.dungeon.size + cx;
     let visitedCount = state.visitedCount;
+    let air = state.air;
     if (!visited[cell]) {
         visited[cell] = 1;
         visitedCount += 1;
-    }
-    let air = state.air;
-    if (visitedCount > state.visitedCount)
         air = Math.min(air + AIR_PER_CELL, state.baseAir);
+    }
     const status = state.status === "ready" && (px !== state.px || py !== state.py) ? "running" : state.status;
-    const won = status === "running" && cell === state.maze.exit;
+    const won = status === "running" && cx === state.dungeon.exit.x && cy === state.dungeon.exit.y;
     return {
         ...state,
         px,
@@ -77,49 +106,6 @@ export function movePlayer(state, ix, iy, dt) {
         status: won ? "won" : status,
     };
 }
-function slide(maze, px, py, dx, dy, r = PLAYER_RADIUS) {
-    let nx = px + dx;
-    const row0 = Math.floor(py - r + 1e-6);
-    const row1 = Math.floor(py + r - 1e-6);
-    if (dx > 0) {
-        const col = Math.floor(nx + r);
-        for (let row = row0; row <= row1; row++) {
-            if (maze.walls[row * maze.n + col] & LEFT) {
-                nx = col - r - 1e-6;
-                break;
-            }
-        }
-    }
-    else if (dx < 0) {
-        const col = Math.floor(nx - r);
-        for (let row = row0; row <= row1; row++) {
-            if (maze.walls[row * maze.n + col] & RIGHT) {
-                nx = col + 1 + r;
-                break;
-            }
-        }
-    }
-    let ny = py + dy;
-    if (dy > 0) {
-        const row = Math.floor(ny + r);
-        for (let col = Math.floor(px - r + 1e-6); col <= Math.floor(px + r - 1e-6); col++) {
-            if (maze.walls[row * maze.n + col] & BOTTOM) {
-                ny = row - r - 1e-6;
-                break;
-            }
-        }
-    }
-    else if (dy < 0) {
-        const row = Math.floor(ny - r);
-        for (let col = Math.floor(px - r + 1e-6); col <= Math.floor(px + r - 1e-6); col++) {
-            if (maze.walls[row * maze.n + col] & TOP) {
-                ny = row + 1 + r;
-                break;
-            }
-        }
-    }
-    return { px: nx, py: ny };
-}
 export function tick(state, dt) {
     if (state.status !== "running")
         return state;
@@ -129,15 +115,28 @@ export function tick(state, dt) {
     return { ...state, air };
 }
 export function pickupChests(state) {
-    const cell = Math.floor(state.py) * state.maze.n + Math.floor(state.px);
-    const hit = state.chests.find((c) => c.cell === cell && !c.opened);
+    const cx = Math.floor(state.px);
+    const cy = Math.floor(state.py);
+    const hit = state.chests.find((c) => !c.opened && Math.floor(c.x) === cx && Math.floor(c.y) === cy);
     if (!hit)
         return state;
-    const chests = state.chests.map((c) => (c.cell === cell ? { ...c, opened: true } : c));
-    const lootCoins = state.lootCoins + hit.coins;
-    const lootTreasures = hit.treasure ? [...state.lootTreasures, hit.treasure] : state.lootTreasures;
-    return { ...state, chests, lootCoins, lootTreasures };
+    const chests = state.chests.map((c) => (c.id === hit.id ? { ...c, opened: true } : c));
+    return {
+        ...state,
+        chests,
+        coins: state.coins + hit.coins,
+        treasures: hit.treasure ? [...state.treasures, hit.treasure] : state.treasures,
+        donations: hit.donation ? [...state.donations, hit.donation] : state.donations,
+        chestOpenCount: state.chestOpenCount + 1,
+    };
 }
-export function chestCountForCells(cells) {
-    return Math.min(8, Math.max(3, Math.round(cells / 45)));
+export function payout(state) {
+    if (state.status === "won") {
+        return { coins: state.coins, treasures: state.treasures, donations: state.donations };
+    }
+    return {
+        coins: Math.floor(state.coins / 2),
+        treasures: state.treasures.slice(0, Math.floor(state.treasures.length / 2)),
+        donations: state.donations.slice(0, Math.floor(state.donations.length / 2)),
+    };
 }

@@ -2,36 +2,52 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#58b64c" />
   <title>Maze Escaper</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" type="image/png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main id="app">
-    <section id="screen-home">
-      <h1>Maze Escaper</h1>
-      <p>Trova l'uscita prima che finisca l'aria.</p>
-      <button id="btn-play" class="primary">Gioca</button>
-    </section>
-
-    <section id="screen-run" hidden>
-      <header>
-        <span id="hud-level">1</span>
-        <span id="hud-air">0</span>
-        <span id="hud-coins">0</span>
-      </header>
-      <canvas id="maze-canvas" width="640" height="640"></canvas>
-    </section>
-
-    <section id="screen-result" hidden>
-      <h1 id="result-title">Run conclusa</h1>
-      <div id="loot-panel">
-        <div><span>Casse aperte</span><span id="loot-chests">0</span></div>
-        <div><span>Tesori trovati</span><span id="loot-treasures">0</span></div>
-        <div><span>Monete recuperate</span><span id="loot-coins">0</span></div>
+    <section id="screen-home" class="screen">
+      <div class="hero">
+        <div class="hero-emoji" aria-hidden="true">🌻🧩</div>
+        <h1>Maze Escaper</h1>
+        <p class="tagline">Esplora il dungeon, apri le casse e trova l'uscita<br /><strong>prima che finisca l'aria della maschera!</strong></p>
       </div>
-      <button id="btn-retry">Riprova</button>
-      <button id="btn-menu">Menu</button>
+      <div class="stats-row">
+        <div class="stat-chip"><span class="stat-label">Livello</span><span class="stat-value" id="home-level">1</span></div>
+        <div class="stat-chip"><span class="stat-label">Monete</span><span class="stat-value" id="home-coins">0</span></div>
+        <div class="stat-chip"><span class="stat-label">Record aria</span><span class="stat-value" id="home-best">—</span></div>
+      </div>
+      <button id="btn-play" class="btn primary">▶ Gioca</button>
+      <p class="hint">WASD o frecce per muoverti · su mobile trascina il dito sul dungeon</p>
+    </section>
+
+    <section id="screen-run" class="screen" hidden>
+      <header class="hud">
+        <div class="hud-pill"><span class="hud-icon">🧭</span><span id="hud-level">1</span><span class="hud-sub" id="hud-biome">Prato</span></div>
+        <div class="hud-pill grow"><span class="hud-icon">🌬️</span><div class="air-wrap"><div class="air-track"><div id="hud-air-fill" class="air-fill"></div></div><span id="hud-air" class="air-num">0</span></div></div>
+        <div class="hud-pill"><span class="hud-icon">💰</span><span id="hud-coins">0</span></div>
+      </header>
+      <canvas id="maze-canvas" width="720" height="720"></canvas>
+    </section>
+
+    <section id="screen-result" class="screen" hidden>
+      <h1 id="result-title">Run conclusa</h1>
+      <div id="loot-panel" class="card">
+        <div class="loot-row"><span>📦 Casse aperte</span><span id="loot-chests">0</span></div>
+        <div class="loot-row"><span>💎 Tesori trovati</span><span id="loot-treasures">—</span></div>
+        <div class="loot-row"><span>💰 Monete recuperate</span><span id="loot-coins">0</span></div>
+        <div class="loot-row"><span>💚 Donazioni trovate</span><span id="loot-donations">—</span></div>
+      </div>
+      <p class="hint">Se perdi, il bottino si dimezza… la prossima volta corri!</p>
+      <div class="btn-row">
+        <button id="btn-retry" class="btn primary">↻ Riprova</button>
+        <button id="btn-menu" class="btn">🏠 Menu</button>
+      </div>
     </section>
   </main>
   <script type="module" src="dist/main.js"></script>

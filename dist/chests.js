@@ -1,52 +1,76 @@
-const TREASURES = [
-    "Amuleto del Prato",
-    "Anello d'ottone",
-    "Campanella d'argento",
-    "Gemma grezza",
-    "Moneta antica",
+import { randInt, pick } from "./rng.js";
+import { isSolid } from "./dungeon.js";
+export const TREASURES = [
+    "Corona d'argento",
+    "Gemma luccicante",
+    "Anello antico",
+    "Perla della luna",
+    "Idolo dorato",
 ];
-const COIN_RANGE = {
+export const DONATIONS = [
+    "WWF",
+    "Medici Senza Frontiere",
+    "Save the Children",
+    "Tree-Nation",
+    "Lega Ambiente",
+];
+export const COIN_RANGE = {
     legno: [4, 8],
     oro: [10, 16],
     ornata: [16, 24],
 };
-function kindForRoll(r) {
-    if (r < 0.6)
+export function rollChestKind(rng) {
+    const roll = rng();
+    if (roll < 0.6)
         return "legno";
-    if (r < 0.85)
+    if (roll < 0.85)
         return "oro";
     return "ornata";
 }
-export function makeChest(cell, kind, rand) {
+export function makeChest(id, x, y, kind, rng) {
     const [min, max] = COIN_RANGE[kind];
-    return {
-        cell,
-        kind,
-        coins: min + Math.floor(rand() * (max - min + 1)),
-        treasure: kind === "legno" ? null : TREASURES[Math.floor(rand() * TREASURES.length)],
-        opened: false,
-    };
+    const treasure = kind === "legno" ? null : pick(rng, TREASURES);
+    const donation = kind === "ornata" ? pick(rng, DONATIONS) : null;
+    return { id, x, y, kind, coins: randInt(rng, min, max), treasure, donation, opened: false };
 }
-export function chestCountForCells(cells) {
-    return Math.min(8, Math.max(3, Math.round(cells / 45)));
+export function chestCountForLevel(level, roomCount) {
+    return Math.min(10, Math.max(3, roomCount + Math.floor(level / 3)));
 }
-export function placeChests(freeCells, entrance, exit, count, rand) {
-    const pool = freeCells.filter((c) => c !== entrance && c !== exit);
-    const shuffled = pool.slice();
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(rand() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function roomFloorCells(d, r, taken) {
+    const cells = [];
+    for (let y = r.y; y < r.y + r.h; y++) {
+        for (let x = r.x; x < r.x + r.w; x++) {
+            const key = y * d.size + x;
+            if (!isSolid(d, x, y) && !taken.has(key))
+                cells.push({ x, y });
+        }
     }
-    return shuffled.slice(0, Math.min(count, shuffled.length))
-        .map((cell) => makeChest(cell, kindForRoll(rand()), rand));
+    return cells;
 }
-export function openChestAt(state) {
-    const chest = state.chests.find((c) => c.cell === state.playerCell && !c.opened);
-    if (!chest)
-        return null;
-    return {
-        chests: state.chests.map((c) => (c.cell === chest.cell ? { ...c, opened: true } : c)),
-        lootCoins: state.lootCoins + chest.coins,
-        lootTreasures: chest.treasure ? [...state.lootTreasures, chest.treasure] : state.lootTreasures,
-    };
+export function placeChests(d, entrance, exit, count, rng) {
+    const taken = new Set();
+    taken.add(entrance.y * d.size + entrance.x);
+    taken.add(exit.y * d.size + exit.x);
+    const chests = [];
+    const shuffledRooms = [...d.rooms];
+    for (let i = shuffledRooms.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        const tmp = shuffledRooms[i];
+        shuffledRooms[i] = shuffledRooms[j];
+        shuffledRooms[j] = tmp;
+    }
+    for (let round = 0; round < 4 && chests.length < count; round++) {
+        for (const r of shuffledRooms) {
+            if (chests.length >= count)
+                break;
+            const cells = roomFloorCells(d, r, taken);
+            if (cells.length === 0)
+                continue;
+            const cell = cells[Math.floor(rng() * cells.length)];
+            taken.add(cell.y * d.size + cell.x);
+            const kind = rollChestKind(rng);
+            chests.push(makeChest(chests.length, cell.x + 0.5, cell.y + 0.5, kind, rng));
+        }
+    }
+    return chests;
 }

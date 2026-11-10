@@ -1,8 +1,8 @@
 {
   "name": "maze-escaper",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
-  "description": "Maze Escaper v1 - procedural maze runs with a timer. Static web app, zero runtime dependencies.",
+  "description": "Dungeon-maze incrementale: stanze, casse, maschera-aria e biomi. PWA statica, zero dipendenze runtime.",
   "type": "module",
   "scripts": {
     "build": "tsc",

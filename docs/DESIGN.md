@@ -1,67 +1,63 @@
-# Maze Escaper — Design System (v1)
+# Maze Escaper — Design System "Prato Soleggiato" v2
 
-Documento di riferimento per lo stile del sito. Deriva dalle skill vendorate in
-`skills/better-colors`, `skills/better-typography`, `skills/better-layout` e
-`skills/better-ui` (fonti in `skills/SOURCES.md`).
+Riferimento di stile per sito e gioco. Il gioco è un dungeon-maze allegra:
+niente dark-mode "tron", tutto caldo, luminoso e giocoso.
 
 ## Principi
 
-1. **Due livelli di token**: primitive (ramp per hue) → semantici (ruolo).
-   I componenti referenziano SOLO il livello semantico (`--color-*`, `--text-*`,
-   `--space-*`). Le primitive non si usano mai direttamente nei componenti.
-2. **Un accent, un significato**: un solo ramp accent (ciano). Un colore è usato
-   per un solo scopo su tutta l'interfaccia.
-3. **Una sola azione primaria per vista**: riempita di accent solo "Gioca"
-   (lobby) e "Riprova" (risultato). I peer restano neutrali.
-4. **Status solo se renderizzati**: `success` (vittoria, record, skill maxate)
-   e `danger` (sconfitta, timer basso, reset). Niente ramp inutilizzati.
+1. **Allegria prima di tutto**: palette calda (crema, verde prato, giallo sole).
+   Il gioco deve far sorridere chi lo apre.
+2. **Un'azione primaria per vista**: "Gioca" (home) e "Riprova" (risultato)
+   sono gli unici bottoni verdi pieni; tutto il resto resta neutro.
+3. **Giocoso ma leggibile**: bottoni "toy" con bordo inferiore spesso (effetto
+   pressa), pill HUD morbide, angoli molto arrotondati.
+4. **Mobile-first**: tutto funziona a 360px; target touch ≥ 44px (i bottoni
+   sono alti ≥ 52px); safe-area rispettata con `env(safe-area-inset-*)`.
 
-## Primitive (OKLCH)
+## Token colore (styles.css `:root`)
 
-| Ramp | Hue OKLCH | Note |
-| --- | --- | --- |
-| `--neutral-*` | 255 | Freddo, leggermente tendito verso l'accent (croma 0.006–0.03) |
-| `--accent-*` | 205 | Ciano, ramp 300–700 |
-| `--success-*` | 155 | ≥15° dall'accent |
-| `--danger-*` | 25 | ≥175° dall'accent |
+| Token | Valore | Uso |
+|---|---|---|
+| `--bg-page` | `#fdf8ec` | sfondo pagina (crema caldo) |
+| `--bg-surface` | `#ffffff` | card, pill, bottoni neutri |
+| `--ink` | `#35402a` | testo primario (verde-moscio scuro) |
+| `--ink-muted` | `#7a8465` | testo secondario, hint |
+| `--green` | `#58b64c` | azione primaria, tema PWA |
+| `--green-deep` | `#2e7d32` | bordo inferiore bottoni, titolo |
+| `--sunny` | `#ffc93c` | focus ring, accento sole, anello medio icona |
+| `--danger` | `#f87171` | barra aria critica |
 
-## Semantici (grammatica: `--color-{bg|text|border}-{variant}-{state}`)
+Il canvas usa le stesse famiglie di colore tramite le palette `BIOMES` in
+`src/render.ts` (Pavimento crema/verde, muri verde fresco, accent giallo sole).
 
-| Ruolo | Token |
-| --- | --- |
-| Superfici | `--color-bg-page`, `--color-bg-surface`, `--color-bg-raised`, `--color-bg-sunken`, `--color-bg-scrim` |
-| Testo | `--color-text-primary`, `--color-text-secondary`, `--color-text-muted`, `--color-text-on-accent` |
-| Bordi | `--color-border-subtle`, `--color-border-default`, `--color-border-strong`, `--color-focus-ring` |
-| Accent | `--color-accent-subtle`, `--color-accent-border`, `--color-accent-solid`, `--color-accent-solid-hover`, `--color-accent-text` |
-| Status | `--color-{success|danger}-{subtle|border|text}` |
+## Biomi (palette canvas, `src/render.ts`)
 
-## Scala tipografica
+| Bioma | Livelli | Pavimento | Muri | Accent |
+|---|---|---|---|---|
+| Prato Incantato | 1–5 | `#eaf6d8` / `#d9eec2` | verde `#7ed957` | giallo sole |
+| Caverne Profonde | 6–10 | `#e7e0d2` / `#d8cfbd` | terra `#b08d5f` | ambra |
+| Galassia | 11+ | `#e4e1f5` / `#d3cfee` | viola `#a78bfa` | rosa |
 
-| Token | Size | Line-height | Weight | Uso |
-| --- | --- | --- | --- | --- |
-| `--text-display` | 2.25rem | 1.1 | 700 | Titolo brand, punteggio |
-| `--text-title` | 1.5rem | 1.2 | 600 | h1, risultato, numeri grandi |
-| `--text-heading` | 1.125rem | 1.3 | 600 | h1 di pagina, valori stat |
-| `--text-body` | 1rem | 1.5 | 400 | Corpo, bottoni |
-| `--text-caption` | 0.8125rem | 1.4 | 400 | Hint, label, chip |
+## Tipografia e spaziatura
 
-Regole: `tabular-nums` sui valori che cambiano (timer, punteggi, monete);
-letter-spacing `-0.01em`/`-0.02em` solo su titoli ≥24px, `0.06em` su etichette
-uppercase piccole; peso ≥400 sotto 18px.
+- Un solo family: `ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui` —
+  arrotondato = giocoso, zero font esterni (offline-first).
+- Titolo home 2.5rem peso 800, ombra gialla 3px (effetto adesivo).
+- Valori che cambiano (aria, monete) con `font-variant-numeric: tabular-nums`.
+- Raggi: 14px chip, 22px pannelli e canvas, 999px bottoni e pill.
+- Ombre morbide `rgba(53,64,42,.12)`, mai nero puro.
 
-## Spaziatura e raggi
+## Motion & juice (skill game-feel)
 
-- Scala: `--space-1..8` = 4/8/12/16/24/32/48/64px. Il gap tra gruppi è ≥2× il
-  gap dentro un gruppo.
-- Raggi concentrici: `--radius-sm` 8px (interni), `--radius-md` 12px (bottoni,
-  canvas result), `--radius-lg` 20px (pannelli con padding 16px).
-- Bottoni: min-height 48px (44px per icone), insettati dai margini del layout.
+- Il giocatore ha bob continuo; popup `+N💰` fluttuanti sulle casse aperte.
+- Screen shake (trauma², decadimento) solo alla sconfitta.
+- `prefers-reduced-motion` disattiva transizioni.
+- HUD aggiornato solo quando il valore cambia (niente polling visivo).
 
-## Regole di vista
+## PWA
 
-- Una sola azione primaria per vista, riempita di accent.
-- Controlli sempre distinti dal contenuto: background, bordo o zona dedicata.
-- `:focus-visible` su ogni controllo interattivo; `prefers-reduced-motion`
-  disattiva fade, blink e transizioni.
-- Il canvas usa la stessa palette via costanti in `src/render.ts` (`COLORS`),
-  allineate ai ramp accent/neutral.
+- `manifest.webmanifest` con `start_url: ./` (compatibile con GitHub Pages
+  in sottocartella), icone 192/512 generate da `scripts/gen-icons.mjs`.
+- Service worker cache-first (`sw.js`) con versione cache `maze-escaper-v1`.
+EOF
+echo OK

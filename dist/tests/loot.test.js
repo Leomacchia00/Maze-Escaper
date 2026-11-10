@@ -1,36 +1,73 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { makeChest, chestCountForCells, placeChests, openChestAt } from "../chests.js";
-test("makeChest crea casse chiuse con loot nel range", () => {
-    const c = makeChest(5, "oro", Math.random);
-    assert.equal(c.opened, false);
-    assert.ok(c.coins >= 4 && c.coins <= 24);
+import { COIN_RANGE, TREASURES, DONATIONS, makeChest, rollChestKind, chestCountForLevel, placeChests, } from "../chests.js";
+import { generateDungeon } from "../dungeon.js";
+import { mulberry32 } from "../rng.js";
+test("range monete per tipo di cassa", () => {
+    assert.deepEqual(COIN_RANGE.legno, [4, 8]);
+    assert.deepEqual(COIN_RANGE.oro, [10, 16]);
+    assert.deepEqual(COIN_RANGE.ornata, [16, 24]);
 });
-test("chestCountForCells sta nei limiti 3-8", () => {
-    assert.equal(chestCountForCells(121), 3);
-    assert.ok(chestCountForCells(1681) <= 8);
-});
-test("placeChests non mette casse su ingresso o uscita", () => {
-    const free = [1, 2, 3, 4, 5];
-    const chests = placeChests(free, 0, 24, 3, Math.random);
-    for (const c of chests) {
-        assert.notEqual(c.cell, 0);
-        assert.notEqual(c.cell, 24);
+test("makeChest: monete nel range del tipo", () => {
+    const rng = mulberry32(5);
+    for (const kind of ["legno", "oro", "ornata"]) {
+        for (let i = 0; i < 50; i++) {
+            const c = makeChest(i, 1.5, 1.5, kind, rng);
+            assert.equal(c.kind, kind);
+            assert.ok(c.coins >= COIN_RANGE[kind][0] && c.coins <= COIN_RANGE[kind][1]);
+        }
     }
 });
-test("openChestAt apre solo la cassa sulla cella del giocatore", () => {
-    const state = {
-        chests: [
-            { cell: 5, kind: "legno", coins: 6, treasure: null, opened: false },
-            { cell: 9, kind: "oro", coins: 12, treasure: "Gemma", opened: false },
-        ],
-        lootCoins: 0,
-        lootTreasures: [],
-        playerCell: 5,
-    };
-    const res = openChestAt(state);
-    assert.ok(res);
-    assert.equal(res.lootCoins, 6);
-    assert.equal(res.chests[0].opened, true);
-    assert.equal(res.chests[1].opened, false);
+test("cassa legno: solo monete; oro: tesoro; ornata: tesoro + donazione", () => {
+    const rng = mulberry32(77);
+    const legno = makeChest(0, 1.5, 1.5, "legno", rng);
+    assert.equal(legno.treasure, null);
+    assert.equal(legno.donation, null);
+    const oro = makeChest(1, 1.5, 1.5, "oro", rng);
+    assert.ok(TREASURES.includes(oro.treasure));
+    assert.equal(oro.donation, null);
+    const ornata = makeChest(2, 1.5, 1.5, "ornata", rng);
+    assert.ok(TREASURES.includes(ornata.treasure));
+    assert.ok(DONATIONS.includes(ornata.donation));
+});
+test("rollChestKind restituisce solo tipi validi", () => {
+    const rng = mulberry32(3);
+    const valid = new Set(["legno", "oro", "ornata"]);
+    for (let i = 0; i < 500; i++)
+        assert.ok(valid.has(rollChestKind(rng)));
+});
+test("chestCountForLevel: minimo 3, cresce col livello, max 10", () => {
+    assert.equal(chestCountForLevel(1, 3), 3);
+    assert.ok(chestCountForLevel(9, 9) > chestCountForLevel(1, 3));
+    assert.ok(chestCountForLevel(99, 9) <= 10);
+});
+test("placeChests: numero richiesto (se le stanze bastano)", () => {
+    const d = generateDungeon(21, 5, mulberry32(42));
+    const chests = placeChests(d, d.entrance, d.exit, 5, mulberry32(1));
+    assert.equal(chests.length, 5);
+});
+test("placeChests: mai su ingresso o uscita", () => {
+    for (const seed of [1, 42, 999]) {
+        const d = generateDungeon(21, 5, mulberry32(seed));
+        const chests = placeChests(d, d.entrance, d.exit, 6, mulberry32(seed));
+        const blocked = new Set([
+            `${d.entrance.x},${d.entrance.y}`,
+            `${d.exit.x},${d.exit.y}`,
+        ]);
+        for (const c of chests) {
+            const key = `${Math.floor(c.x)},${Math.floor(c.y)}`;
+            assert.ok(!blocked.has(key), `cassa su ingresso/uscita (seed ${seed}): ${key}`);
+        }
+    }
+});
+test("placeChests: celle tutte diverse e dentro le stanze", () => {
+    const d = generateDungeon(25, 6, mulberry32(314));
+    const chests = placeChests(d, d.entrance, d.exit, 6, mulberry32(314));
+    const keys = new Set(chests.map((c) => `${Math.floor(c.x)},${Math.floor(c.y)}`));
+    assert.equal(keys.size, chests.length);
+    for (const c of chests) {
+        const inRoom = d.rooms.some((r) => Math.floor(c.x) >= r.x && Math.floor(c.x) < r.x + r.w &&
+            Math.floor(c.y) >= r.y && Math.floor(c.y) < r.y + r.h);
+        assert.ok(inRoom, `cassa fuori dalle stanze in (${c.x},${c.y})`);
+    }
 });
