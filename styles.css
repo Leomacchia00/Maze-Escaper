@@ -214,16 +214,17 @@ canvas {
   font-family: inherit;
   font-size: 1rem;
   font-weight: 700;
-  padding: 0.4rem 0.8rem;
-  border: none;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--ink);
   cursor: pointer;
   line-height: 1;
+  box-shadow: 0 2px 0 rgba(53, 64, 42, 0.12);
 }
-.hud-btn:hover { background: rgba(255, 255, 255, 0.4); }
-.hud-btn:active { transform: translateY(2px); }
+.hud-btn:hover { background: var(--sunny); border-color: var(--sunny); }
+.hud-btn:active { transform: translateY(2px); box-shadow: none; }
 
 .overlay {
   position: fixed;
