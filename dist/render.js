@@ -265,6 +265,14 @@ function drawEnemies(ctx, g, enemies, range) {
         ctx.arc(cx - r * 0.3, cy + wob - r * 0.2, r * 0.08, 0, Math.PI * 2);
         ctx.arc(cx + r * 0.3, cy + wob - r * 0.2, r * 0.08, 0, Math.PI * 2);
         ctx.fill();
+        if (e.flash && e.flash > 0) {
+            ctx.globalAlpha = Math.min(0.85, (e.flash / 0.12) * 0.85);
+            ctx.fillStyle = "#ffffff";
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + wob, r, r * (e.kind === "slug" ? 0.7 : 0.9), 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
     }
 }
 function drawTorches(ctx, g, d, range) {
@@ -332,6 +340,42 @@ function applyDarkness(ctx, g, d, state, dark, range) {
     octx.globalCompositeOperation = "source-over";
     ctx.drawImage(darkCanvas, 0, 0);
 }
+function drawSwing(ctx, g, state, swing) {
+    const alpha = Math.max(0, 1 - swing.age / 0.15);
+    if (alpha <= 0)
+        return;
+    const cx = g.ox + state.px * g.tw;
+    const cy = g.oy + state.py * g.tw;
+    const base = Math.atan2(swing.facingY, swing.facingX);
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, g.tw * (0.9 + alpha * 0.35), base - 0.65, base + 0.65);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+function drawHurtVignette(ctx, hurt) {
+    const a = Math.min(0.4, hurt * 0.35);
+    if (a <= 0)
+        return;
+    const w = ctx.canvas.width;
+    const h = ctx.canvas.height;
+    const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.72);
+    grad.addColorStop(0, "rgba(220,38,38,0)");
+    grad.addColorStop(1, `rgba(220,38,38,${a})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+}
+function drawVignette(ctx, w, h) {
+    const grad = ctx.createRadialGradient(w / 2, h / 2, h * 0.42, w / 2, h / 2, h * 0.78);
+    grad.addColorStop(0, "rgba(20,16,40,0)");
+    grad.addColorStop(1, "rgba(20,16,40,0.22)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+}
 export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
     const ctx = canvas.getContext("2d");
     if (!ctx)
@@ -372,6 +416,11 @@ export function drawRun(canvas, state, fx = { shake: 0, popups: [] }) {
     drawPlayer(ctx, g, state);
     drawTorches(ctx, g, d, range);
     applyDarkness(ctx, g, d, state, darknessForLevel(state.level), range);
+    if (fx.swing)
+        drawSwing(ctx, g, state, fx.swing);
+    if (fx.hurt && fx.hurt > 0)
+        drawHurtVignette(ctx, fx.hurt);
+    drawVignette(ctx, canvas.width, canvas.height);
     drawPopups(ctx, g, fx);
     ctx.restore();
     drawMiniMap(ctx, state, seen, b, canvas.width);

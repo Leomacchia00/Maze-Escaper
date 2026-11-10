@@ -1,4 +1,5 @@
 import { createRun, movePlayer, tick, pickupChests, payout, damagePlayer } from "./game.js";
+import { isSolid } from "./dungeon.js";
 import { pickupAt } from "./pickups.js";
 import { moveEnemies, ENEMY_BOUNTY } from "./enemies.js";
 import { playCoin, playChest, playClick, playHurt, playSword, playWin, playLose, resumeAudio } from "./audio.js";
@@ -87,6 +88,14 @@ class App {
                     }
                 }
                 this.attackCd = Math.max(0, this.attackCd - dt);
+                if (this.fx.swing) {
+                    this.fx.swing.age += dt;
+                    if (this.fx.swing.age > 0.15)
+                        this.fx.swing = null;
+                }
+                if (this.fx.hurt) {
+                    this.fx.hurt = Math.max(0, this.fx.hurt - dt * 2.2);
+                }
                 this.fx.shake = Math.max(0, this.fx.shake - dt * 1.5);
                 for (const p of this.fx.popups)
                     p.age += dt;
@@ -343,6 +352,7 @@ class App {
         playSword();
         const fx = this.run.facingX;
         const fy = this.run.facingY;
+        this.fx.swing = { age: 0, facingX: fx, facingY: fy };
         const survivors = [];
         for (const e of this.run.enemies) {
             const dx = e.x - this.run.px;
@@ -352,6 +362,13 @@ class App {
             const inArc = dist > 0 ? (dx * fx + dy * fy) / dist > 0.25 : true;
             if (inRange && inArc) {
                 e.hp -= 1;
+                e.flash = 0.12;
+                const kx = e.x + fx * 0.3;
+                const ky = e.y + fy * 0.3;
+                if (!isSolid(this.run.dungeon, Math.floor(kx), Math.floor(ky))) {
+                    e.x = kx;
+                    e.y = ky;
+                }
                 this.fx.popups.push({ x: e.x, y: e.y, text: "\u2694\ufe0f", age: 0 });
             }
             if (e.hp > 0)

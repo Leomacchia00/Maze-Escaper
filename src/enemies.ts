@@ -13,6 +13,7 @@ export interface Enemy {
   hp: number;
   maxHp: number;
   chasing: boolean;
+  flash?: number;
 }
 
 export const ENEMY_HP: Record<EnemyKind, number> = {
@@ -116,6 +117,7 @@ export function moveEnemies(
   rng: Rng = Math.random
 ): Enemy[] {
   return enemies.map((e) => {
+    const flash = e.flash && e.flash > 0 ? e.flash - dt : 0;
     const dist = Math.hypot(px - e.x, py - e.y);
     if (dist < ENEMY_TRAITS[e.kind].chaseRange) {
       const dir = chaseDir(d, e, px, py);
@@ -123,16 +125,16 @@ export function moveEnemies(
         const sp = ENEMY_TRAITS[e.kind].speed;
         const nx = e.x + dir[0] * sp * dt;
         const ny = e.y + dir[1] * sp * dt;
-        if (cellFree(d, nx, ny)) return { ...e, x: nx, y: ny, dx: dir[0], dy: dir[1], chasing: true };
+        if (cellFree(d, nx, ny)) return { ...e, x: nx, y: ny, dx: dir[0], dy: dir[1], chasing: true, flash };
       }
-      return { ...e, chasing: true };
+      return { ...e, chasing: true, flash };
     }
     const nx = e.x + e.dx * e.speed * dt;
     const ny = e.y + e.dy * e.speed * dt;
-    if (cellFree(d, nx, ny)) return { ...e, x: nx, y: ny, chasing: false };
+    if (cellFree(d, nx, ny)) return { ...e, x: nx, y: ny, chasing: false, flash };
     const free = DIRS.filter(([dx, dy]) => cellFree(d, e.x + dx * 0.6, e.y + dy * 0.6));
-    if (free.length === 0) return { ...e, chasing: false };
+    if (free.length === 0) return { ...e, chasing: false, flash };
     const dir = pick(rng, free);
-    return { ...e, dx: dir[0], dy: dir[1], chasing: false };
+    return { ...e, dx: dir[0], dy: dir[1], chasing: false, flash };
   });
 }
