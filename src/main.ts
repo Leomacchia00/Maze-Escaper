@@ -289,22 +289,24 @@ class App {
         (this.keys.has("arrowup") || this.keys.has("w") ? 1 : 0);
       const ix = kx !== 0 ? kx : this.joyVec.x;
       const iy = ky !== 0 ? ky : this.joyVec.y;
-      const before = this.run.chestOpenCount;
-      const coinsBefore = this.run.coins;
-      const hpBefore = this.run.hp;
-      this.run = movePlayer(this.run, ix, iy, dt);
-      this.run = tick(this.run, dt);
-      this.run.enemies = moveEnemies(this.run.enemies, this.run.dungeon, dt, this.run.px, this.run.py);
-      this.run = pickupChests(this.run);
-      this.collectPickups();
-      this.checkEnemyCollisions(dt);
-      if (this.run.chestOpenCount > before) {
-        const chest = this.run.chests.find((c) => c.opened && c.id === before);
-        if (chest) {
-          const gained = this.run.coins - coinsBefore;
-          const popup: Popup = { x: chest.x, y: chest.y, text: `+${gained}💰`, age: 0 };
-          this.fx.popups.push(popup);
-          playChest();
+      const hitStop = !!this.fx.swing && this.fx.swing.age < 0.12;
+      if (!hitStop) {
+        const before = this.run.chestOpenCount;
+        const coinsBefore = this.run.coins;
+        this.run = movePlayer(this.run, ix, iy, dt);
+        this.run = tick(this.run, dt);
+        this.run.enemies = moveEnemies(this.run.enemies, this.run.dungeon, dt, this.run.px, this.run.py);
+        this.run = pickupChests(this.run);
+        this.collectPickups();
+        this.checkEnemyCollisions(dt);
+        if (this.run.chestOpenCount > before) {
+          const chest = this.run.chests.find((c) => c.opened && c.id === before);
+          if (chest) {
+            const gained = this.run.coins - coinsBefore;
+            const popup: Popup = { x: chest.x, y: chest.y, text: `+${gained}💰`, age: 0 };
+            this.fx.popups.push(popup);
+            playChest();
+          }
         }
       }
       this.attackCd = Math.max(0, this.attackCd - dt);
@@ -376,7 +378,7 @@ class App {
           e.x = kx;
           e.y = ky;
         }
-        this.fx.popups.push({ x: e.x, y: e.y, text: "\u2694\ufe0f", age: 0 });
+        this.fx.popups.push({ x: e.x, y: e.y, text: "-1", age: 0, color: "#dc2626" });
       }
       if (e.hp > 0) survivors.push(e);
       else {
@@ -407,6 +409,8 @@ class App {
       if (Math.hypot(e.x - this.run.px, e.y - this.run.py) < 0.6) {
         this.run = damagePlayer(this.run, 1);
         this.fx.shake = 1;
+        this.fx.hurt = 1;
+        this.fx.popups.push({ x: this.run.px, y: this.run.py, text: "-1", age: 0, color: "#dc2626" });
         playHurt();
         this.hurtCooldown = 1.2;
         break;

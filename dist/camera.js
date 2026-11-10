@@ -1,4 +1,8 @@
 export const VISIBLE_TILES = 11;
+export const LIGHT_RADIUS = 3.5;
+export function isLitNow(px, py, x, y, radius = LIGHT_RADIUS) {
+    return Math.hypot(x + 0.5 - (px + 0.5), y + 0.5 - (py + 0.5)) <= radius;
+}
 export function darknessForLevel(level) {
     return Math.min(0.93, 0.55 + (level - 1) * 0.07);
 }

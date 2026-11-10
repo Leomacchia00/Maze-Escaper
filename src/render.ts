@@ -1,5 +1,5 @@
 import { Dungeon } from "./dungeon.js";
-import { Cam, cameraFor, seenMask, visibleRange, CellRange, darknessForLevel } from "./camera.js";
+import { Cam, cameraFor, seenMask, visibleRange, CellRange, darknessForLevel, isLitNow } from "./camera.js";
 import { RunState } from "./game.js";
 import { Enemy } from "./enemies.js";
 
@@ -63,6 +63,7 @@ export interface Popup {
   y: number;
   text: string;
   age: number;
+  color?: string;
 }
 
 export interface Fx {
@@ -243,15 +244,16 @@ function drawMiniMap(
   ctx.fillStyle = "rgba(53,64,42,0.08)";
   ctx.fillRect(mx + 1, my + 1, mapSize - 2, mapSize - 2);
   ctx.globalAlpha = 1;
-  ctx.fillStyle = b.wallTop;
   for (let y = 0; y < state.dungeon.size; y++) {
     for (let x = 0; x < state.dungeon.size; x++) {
       const i = y * state.dungeon.size + x;
-      if (state.visited[i] === 1 && state.dungeon.solid[i] === 0) {
-        ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
-      }
+      if (state.visited[i] !== 1 || state.dungeon.solid[i] === 1) continue;
+      ctx.fillStyle = b.wallTop;
+      ctx.globalAlpha = isLitNow(state.px, state.py, x, y) ? 1 : 0.35;
+      ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
     }
   }
+  ctx.globalAlpha = 1;
   const ex = state.dungeon.exit.x;
   const ey = state.dungeon.exit.y;
   if (seen[ey * state.dungeon.size + ex] === 1) {
@@ -532,7 +534,7 @@ function drawPopups(ctx: CanvasRenderingContext2D, g: Cam, fx: Fx): void {
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 3;
     ctx.strokeText(p.text, cx, cy);
-    ctx.fillStyle = "#e0a10c";
+    ctx.fillStyle = p.color ?? "#e0a10c";
     ctx.fillText(p.text, cx, cy);
     ctx.restore();
   }

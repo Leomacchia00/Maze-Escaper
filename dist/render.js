@@ -1,4 +1,4 @@
-import { cameraFor, seenMask, visibleRange, darknessForLevel } from "./camera.js";
+import { cameraFor, seenMask, visibleRange, darknessForLevel, isLitNow } from "./camera.js";
 function hash2(x, y, seed) {
     let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 1274126177)) | 0;
     h = Math.imul(h ^ (h >>> 13), 1274126177);
@@ -184,15 +184,17 @@ function drawMiniMap(ctx, state, seen, b, width) {
     ctx.fillStyle = "rgba(53,64,42,0.08)";
     ctx.fillRect(mx + 1, my + 1, mapSize - 2, mapSize - 2);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = b.wallTop;
     for (let y = 0; y < state.dungeon.size; y++) {
         for (let x = 0; x < state.dungeon.size; x++) {
             const i = y * state.dungeon.size + x;
-            if (state.visited[i] === 1 && state.dungeon.solid[i] === 0) {
-                ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
-            }
+            if (state.visited[i] !== 1 || state.dungeon.solid[i] === 1)
+                continue;
+            ctx.fillStyle = b.wallTop;
+            ctx.globalAlpha = isLitNow(state.px, state.py, x, y) ? 1 : 0.35;
+            ctx.fillRect(mx + x * s, my + y * s, s + 0.5, s + 0.5);
         }
     }
+    ctx.globalAlpha = 1;
     const ex = state.dungeon.exit.x;
     const ey = state.dungeon.exit.y;
     if (seen[ey * state.dungeon.size + ex] === 1) {
@@ -438,7 +440,7 @@ function drawPopups(ctx, g, fx) {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 3;
         ctx.strokeText(p.text, cx, cy);
-        ctx.fillStyle = "#e0a10c";
+        ctx.fillStyle = p.color ?? "#e0a10c";
         ctx.fillText(p.text, cx, cy);
         ctx.restore();
     }

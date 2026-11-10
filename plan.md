@@ -2,7 +2,7 @@
 
 > **Documento vivo**: questa è la base condivisa da cui partiamo da ora in avanti.
 > Ogni nuova iterazione aggiorna questo file (stato, roadmap, domande).
-> Ultimo aggiornamento: nemici con chase+varietà, HP giocatore, buio 0.55→0.93 — test 80/80 verdi, deploy Pages verde.
+> Ultimo aggiornamento: juice pass completa (arco, hit-stop, knockback, flash, vignette, numeri danno) + minimappa 3 stati — test 84/84 verdi, tutte le domande del plan chiuse.
 
 ---
 
@@ -59,11 +59,11 @@ run (1-3 min) → esplora dungeon a stanze → raccogli bottino (monete/gemme/ca
 | # | Fase | Contenuto | Stato |
 |---|------|-----------|-------|
 | 0 | Buio + luci | Buio crescente per livello, torce/portale bucano la nebbia | ✅ fatto |
-| 1 | Feedback combattimento | hit-stop, knockback leggero, popup danno numerico | ⬜ prossimo |
+| 1 | Feedback combattimento | hit-stop, knockback, flash, vignetta danno, numeri danno | ✅ fatto |
 | 2 | HP giocatore / salute | 3 cuori, danno da contatto, cura dalle casse | ✅ fatto |
 | 3 | Boss | un boss ogni tot livelli, nebbia che sale dal basso durante il duello (decisione 7) | ⬜ |
-| 4 | Fog 3 stati sulla mini-mappa | visibile / esplorato dim / mai visto | ⬜ |
-| 5 | Shop + sink monete | consumabili comprabili prima di scendere (decisione 3: sì) | ⬜ prossimo |
+| 4 | Fog 3 stati sulla mini-mappa | visibile / esplorato dim / mai visto | ✅ fatto |
+| 5 | Shop nella home (decisione: in home tra le run) | consumabili + potenziamenti accanto alla skill tree | ⬜ prossimo |
 | 6 | Pet idle (stile WellDiver) | pet che raccolgono monete offline, "amore" da feeding | ⬜ sì ma più avanti |
 | 7 | Prestige | progressione lineare: bioma saturo → bioma successivo (decisione 5) | ⬜ |
 | 8 | Audio | resta synth Web Audio, da definire meglio più avanti (decisione 8) | ⏸ rinviato |
@@ -85,11 +85,11 @@ run (1-3 min) → esplora dungeon a stanze → raccogli bottino (monete/gemme/ca
 7. ~~Boss~~ ✅ **Risposta: sì, un boss ogni tot livelli** — durante il duello sale nebbia velenosa dal basso (urgenza spaziale), il tipo di boss dipende dal bioma.
 8. ~~Crescita mappe~~ ✅ **Risposta: crescita mista** — aumenta e varia la difficoltà, non necessariamente la dimensione (mob più forti ⇒ mappe anche più piccole).
 9. ~~Nemici~~ ✅ **Risposta: patrol + chase + varietà** → implementato (slug/bat/wisp/brute con chase). Biomi-specifici da definire.
-10. **Mini-mappa**: vuoi anche sulla mini-mappa i 3 stati (visibile/esplorato/mai visto) o resta semplice?
-11. **Condizione di vittoria**: solo uscire vivi, oppure obiettivi extra per run (es. "apri 3 casse", "uccidi tutti") con ricompense?
-12. **Joystick mobile**: ti va bene posizione/dimensione attuale (sotto a sinistra, R=36) o vuoi configurazione diversa?
-13. **Lore del tempo/aria**: la lore scelta è "la maschera filtra la nebbia velenosa". La teniamo così o vogliamo una piccola narrazione introduttiva (schermata iniziale)?
-14. **Donazioni beneficiarie**: teniamo le donazioni simboliche nelle casse come lore "buona"? Vuoi che siano tracciabili (es. contatore "X donazioni fatte")?
+10. ~~Mini-mappa~~ ✅ **Risposta: 3 stati completi** — visibile (brillante), esplorato (attenuato), mai visto (invisibile). Implementata.
+11. ~~Condizione di vittoria~~ ✅ **Risposta**: solo uscita per ora; le quest extra per run restano nel plan come idea futura.
+12. ~~Joystick mobile~~ ✅ **Risposta**: va bene così (sotto a sinistra, R=36).
+13. ~~Lore~~ ✅ **Risposta**: lore tenuta, intro narrativa prevista ma non ora.
+14. ~~Donazioni~~ ✅ **Risposta**: sì, tenute e tracciabili (contatore "X donazioni fatte" nella home) — da implementare.
 
 ---
 
